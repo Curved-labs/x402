@@ -30,3 +30,28 @@ pub struct AccountDiff {
     pub lamports_after: u64,
     pub lamports_delta: i128,
     pub data_changed: bool,
+    pub data_len_before: usize,
+    pub data_len_after: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenTransfer {
+    pub mint: String,
+    pub from: String,
+    pub to: String,
+    pub ui_amount: f64,
+    pub raw_amount: u64,
+    pub decimals: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecodedInstruction {
+    pub program_id: String,
+    pub program_name: String,
+    pub instruction_name: String,
+    pub summary: String,
+    pub accounts: Vec<String>,
+    pub risk: RiskLevel,
+    pub risk_reasons: Vec<String>,
+}
+
