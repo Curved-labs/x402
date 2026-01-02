@@ -56,3 +56,51 @@ fn collect_writable_accounts(tx: &VersionedTransaction) -> Vec<Pubkey> {
             out.push(*key);
         }
     }
+    out
+}
+
+fn ui_account_to_snapshot(pubkey: Pubkey, ui: &UiAccount) -> Result<AccountSnapshot> {
+    let data_vec = ui
+        .data
+        .decode()
+        .ok_or_else(|| anyhow!("failed to decode UiAccount data for {}", pubkey))?;
+    let owner = ui
+        .owner
+        .parse::<Pubkey>()
+        .with_context(|| format!("bad owner pubkey on {}", pubkey))?;
+    Ok(AccountSnapshot {
+        pubkey,
+        lamports: ui.lamports,
+        owner,
+        data: data_vec,
+        executable: ui.executable,
+    })
+}
+
+/// Fetch accounts in one RPC call, returning a snapshot per key (missing accounts become zero-lamport empty).
+async fn fetch_snapshots(
+    client: &RpcClient,
+    keys: &[Pubkey],
+    commitment: CommitmentConfig,
+) -> Result<Vec<AccountSnapshot>> {
+    if keys.is_empty() {
+        return Ok(vec![]);
+    }
+    let fetched = client
+        .get_multiple_accounts_with_commitment(keys, commitment)
+        .await
+        .context("get_multiple_accounts failed")?;
+    let mut out = Vec::with_capacity(keys.len());
+    for (key, maybe_acc) in keys.iter().zip(fetched.value.into_iter()) {
+        out.push(match maybe_acc {
+            Some(acc) => AccountSnapshot {
+                pubkey: *key,
+                lamports: acc.lamports,
+                owner: acc.owner,
+                data: acc.data,
+                executable: acc.executable,
+            },
+            None => AccountSnapshot {
+                pubkey: *key,
+                lamports: 0,
+                owner: Pubkey::default(),
