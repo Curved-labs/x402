@@ -16,3 +16,14 @@ pub fn compute_account_diffs(
         diffs.push(AccountDiff {
             address: p.pubkey.to_string(),
             owner_before: Some(p.owner.to_string()),
+            owner_after: Some(q.owner.to_string()),
+            lamports_before: p.lamports,
+            lamports_after: q.lamports,
+            lamports_delta: q.lamports as i128 - p.lamports as i128,
+            data_changed,
+            data_len_before: p.data.len(),
+            data_len_after: q.data.len(),
+        });
+    }
+    diffs
+}
