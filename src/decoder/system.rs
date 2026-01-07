@@ -67,3 +67,55 @@ impl ProgramDecoder for SystemDecoder {
                 let level = if sol >= 100.0 {
                     RiskLevel::High
                 } else if sol >= 10.0 {
+                    RiskLevel::Medium
+                } else {
+                    RiskLevel::Low
+                };
+                let reasons = if level != RiskLevel::Low {
+                    vec![format!("Large SOL transfer: {:.4} SOL", sol)]
+                } else {
+                    vec![]
+                };
+                (
+                    "Transfer",
+                    format!(
+                        "Transfer {:.6} SOL from {} to {}",
+                        sol,
+                        resolve(0),
+                        resolve(1)
+                    ),
+                    level,
+                    reasons,
+                )
+            }
+            3 => (
+                "CreateAccountWithSeed",
+                format!("Create account with seed (payer {})", resolve(0)),
+                RiskLevel::Low,
+                vec![],
+            ),
+            4 => (
+                "AdvanceNonceAccount",
+                format!(
+                    "Advance durable nonce account {} (authority {})",
+                    resolve(0),
+                    resolve(2)
+                ),
+                RiskLevel::Medium,
+                vec![
+                    "Durable nonce advance — tx was prepared earlier and kept valid via nonce"
+                        .into(),
+                ],
+            ),
+            6 => (
+                "InitializeNonceAccount",
+                format!(
+                    "Initialize durable nonce account {} with authority {}",
+                    resolve(0),
+                    "(authority in data)"
+                ),
+                RiskLevel::Medium,
+                vec![
+                    "Creates a durable-nonce enabled account — signed txs using it have no expiry"
+                        .into(),
+                ],
