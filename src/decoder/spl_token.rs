@@ -54,3 +54,50 @@ pub fn decode_spl_token_instruction(
             .and_then(|idx| account_keys.get(*idx as usize))
             .map(|k| k.to_string())
             .unwrap_or_else(|| "?".to_string())
+    };
+
+    let (name, summary, risk, reasons) = match tag {
+        3 => {
+            // Transfer: u64 amount
+            let amount = read_u64(&ix.data, 1).unwrap_or(0);
+            (
+                "Transfer",
+                format!(
+                    "Token transfer: {} raw units from {} to {} (authority {})",
+                    amount,
+                    resolve(0),
+                    resolve(1),
+                    resolve(2)
+                ),
+                classify_amount(amount),
+                vec![],
+            )
+        }
+        7 => {
+            // MintTo: u64 amount
+            let amount = read_u64(&ix.data, 1).unwrap_or(0);
+            (
+                "MintTo",
+                format!(
+                    "Mint {} raw units of mint {} to token account {} (mint authority {})",
+                    amount,
+                    resolve(0),
+                    resolve(1),
+                    resolve(2)
+                ),
+                RiskLevel::High,
+                vec!["Token minting — inflationary action".into()],
+            )
+        }
+        8 => {
+            // Burn: u64 amount
+            let amount = read_u64(&ix.data, 1).unwrap_or(0);
+            (
+                "Burn",
+                format!(
+                    "Burn {} raw units from token account {} (mint {}, authority {})",
+                    amount,
+                    resolve(0),
+                    resolve(1),
+                    resolve(2)
+                ),
