@@ -101,3 +101,41 @@ pub fn decode_spl_token_instruction(
                     resolve(1),
                     resolve(2)
                 ),
+                RiskLevel::Medium,
+                vec![],
+            )
+        }
+        9 => (
+            "CloseAccount",
+            format!(
+                "Close token account {} — rent returned to {} (authority {})",
+                resolve(0),
+                resolve(1),
+                resolve(2)
+            ),
+            RiskLevel::Medium,
+            vec![],
+        ),
+        6 => (
+            "SetAuthority",
+            format!(
+                "Change authority on account {} — authority was {}",
+                resolve(0),
+                resolve(1)
+            ),
+            RiskLevel::High,
+            vec!["Authority change on a token mint/account — ownership transfer".into()],
+        ),
+        12 => {
+            // TransferChecked: u64 amount, u8 decimals
+            let amount = read_u64(&ix.data, 1).unwrap_or(0);
+            let decimals = *ix.data.get(9).unwrap_or(&0);
+            (
+                "TransferChecked",
+                format!(
+                    "Checked transfer: {} raw units (decimals {}) mint {} from {} to {}",
+                    amount,
+                    decimals,
+                    resolve(1),
+                    resolve(0),
+                    resolve(2)
