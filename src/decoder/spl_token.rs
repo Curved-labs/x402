@@ -139,3 +139,49 @@ pub fn decode_spl_token_instruction(
                     resolve(1),
                     resolve(0),
                     resolve(2)
+                ),
+                classify_amount(amount),
+                vec![],
+            )
+        }
+        _ => (
+            "SplTokenInstruction",
+            format!("SPL Token instruction (tag {})", tag),
+            RiskLevel::Low,
+            vec![],
+        ),
+    };
+
+    Some(DecodedInstruction {
+        program_id: spl_token::ID.to_string(),
+        program_name: "SPL Token".to_string(),
+        instruction_name: name.to_string(),
+        summary,
+        accounts: ix
+            .accounts
+            .iter()
+            .filter_map(|i| account_keys.get(*i as usize).map(|k| k.to_string()))
+            .collect(),
+        risk,
+        risk_reasons: reasons,
+    })
+}
+
+fn classify_amount(amount: u64) -> RiskLevel {
+    if amount >= 1_000_000_000_000 {
+        RiskLevel::High
+    } else if amount >= 1_000_000_000 {
+        RiskLevel::Medium
+    } else {
+        RiskLevel::Low
+    }
+}
+
+fn read_u64(data: &[u8], offset: usize) -> Option<u64> {
+    if data.len() < offset + 8 {
+        return None;
+    }
+    Some(u64::from_le_bytes(
+        data[offset..offset + 8].try_into().ok()?,
+    ))
+}
