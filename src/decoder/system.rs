@@ -119,3 +119,54 @@ impl ProgramDecoder for SystemDecoder {
                     "Creates a durable-nonce enabled account — signed txs using it have no expiry"
                         .into(),
                 ],
+            ),
+            8 => {
+                // Allocate
+                let space = read_u64(&ix.data, 4).unwrap_or(0);
+                (
+                    "Allocate",
+                    format!("Allocate {} bytes to account {}", space, resolve(0)),
+                    RiskLevel::Low,
+                    vec![],
+                )
+            }
+            _ => (
+                "SystemProgram",
+                format!("System program instruction (tag {})", tag),
+                RiskLevel::Low,
+                vec![],
+            ),
+        };
+
+        Some(DecodedInstruction {
+            program_id: system_program::ID.to_string(),
+            program_name: "System Program".to_string(),
+            instruction_name: name.to_string(),
+            summary,
+            accounts: ix
+                .accounts
+                .iter()
+                .filter_map(|i| account_keys.get(*i as usize).map(|k| k.to_string()))
+                .collect(),
+            risk,
+            risk_reasons: reasons,
+        })
+    }
+}
+
+fn read_u64(data: &[u8], offset: usize) -> Option<u64> {
+    if data.len() < offset + 8 {
+        return None;
+    }
+    Some(u64::from_le_bytes(
+        data[offset..offset + 8].try_into().ok()?,
+    ))
+}
+
+fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
+    if data.len() < offset + 32 {
+        return None;
+    }
+    let bytes: [u8; 32] = data[offset..offset + 32].try_into().ok()?;
+    Some(Pubkey::new_from_array(bytes))
+}
