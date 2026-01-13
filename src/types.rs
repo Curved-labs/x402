@@ -55,3 +55,27 @@ pub struct DecodedInstruction {
     pub risk_reasons: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LegibilityReport {
+    pub tx_signature_preview: String,
+    pub fee_payer: String,
+    pub uses_durable_nonce: bool,
+    pub durable_nonce_warning: Option<String>,
+    pub instructions: Vec<DecodedInstruction>,
+    pub account_diffs: Vec<AccountDiff>,
+    pub token_transfers: Vec<TokenTransfer>,
+    pub overall_risk: RiskLevel,
+    pub human_summary: Vec<String>,
+    pub simulation_logs: Vec<String>,
+    pub simulation_success: bool,
+    pub simulation_error: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AccountSnapshot {
+    pub pubkey: Pubkey,
+    pub lamports: u64,
+    pub owner: Pubkey,
+    pub data: Vec<u8>,
+    pub executable: bool,
+}
