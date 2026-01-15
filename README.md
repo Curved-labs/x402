@@ -59,3 +59,28 @@
 | Drift 2026 pattern detection | `stable` | Detects the exact exploit shape: durable nonce + multisig admin execute. Flags as CRITICAL with a detailed warning referencing the $285M drain |
 | Durable nonce detection | `stable` | Recognizes AdvanceNonceAccount as the first instruction (tag 4, enforced by the Solana runtime) and surfaces a "no expiry" warning with risk escalation |
 | Token transfer synthesis | `stable` | Parses 165-byte SPL Token account layouts from pre/post simulation snapshots to produce transfer events, including CPI-only flows that never appear as top-level instructions |
+| State diff engine | `stable` | Per-account lamport delta, owner change detection, data-length changes, and data-hash diffing across pre/post simulation snapshots |
+| Risk classifier | `stable` | Merges per-instruction risk, large lamport outflows (>1 SOL), owner changes (auto-CRITICAL), durable nonce escalation, and Drift pattern matching into a single overall risk level with human-readable summary |
+
+---
+
+## Architecture
+
+The engine processes a transaction through a linear pipeline. Each stage feeds the next, producing a final `LegibilityReport` struct that contains everything a signer needs to make an informed decision.
+
+```
+                           crif pipeline
+                           =============
+
++------------------------+
+| VersionedTransaction   |  base64-encoded input (signed or unsigned)
++------------------------+
+            |
+            v
++------------------------+
+| fetch_snapshots()      |  RPC: get_multiple_accounts for all writable keys
+| (pre-state)            |  produces Vec<AccountSnapshot>
++------------------------+
+            |
+            v
++------------------------+
