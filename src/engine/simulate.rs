@@ -104,3 +104,52 @@ async fn fetch_snapshots(
                 pubkey: *key,
                 lamports: 0,
                 owner: Pubkey::default(),
+                data: vec![],
+                executable: false,
+            },
+        });
+    }
+    Ok(out)
+}
+
+/// Simulate a transaction and produce pre/post account snapshots.
+///
+/// Strategy:
+///   1. Extract writable account keys from the versioned tx.
+///   2. Fetch current state of each writable account (pre-image).
+///   3. Call `simulateTransaction` with `accounts` config so the RPC returns post-state.
+///   4. Build the post-image from the RPC response, falling back to pre if the RPC omits an account.
+pub async fn simulate_transaction(
+    cfg: &EngineConfig,
+    tx: &VersionedTransaction,
+) -> Result<SimulationOutcome> {
+    let client = RpcClient::new_with_commitment(cfg.rpc_url.clone(), cfg.commitment);
+
+    let writable_keys = collect_writable_accounts(tx);
+    let pre_accounts = fetch_snapshots(&client, &writable_keys, cfg.commitment).await?;
+
+    let sim_cfg = RpcSimulateTransactionConfig {
+        sig_verify: false,
+        replace_recent_blockhash: cfg.replace_blockhash,
+        commitment: Some(cfg.commitment),
+        encoding: Some(solana_transaction_status::UiTransactionEncoding::Base64),
+        accounts: Some(RpcSimulateTransactionAccountsConfig {
+            encoding: Some(UiAccountEncoding::Base64),
+            addresses: writable_keys.iter().map(|k| k.to_string()).collect(),
+        }),
+        min_context_slot: None,
+        inner_instructions: false,
+    };
+
+    let sim = client
+        .simulate_transaction_with_config(tx, sim_cfg)
+        .await
+        .context("simulateTransaction RPC call failed")?;
+
+    let logs = sim.value.logs.clone().unwrap_or_default();
+    let err_str = sim.value.err.as_ref().map(|e| format!("{:?}", e));
+    let success = sim.value.err.is_none();
+    let units = sim.value.units_consumed;
+
+    let mut post_accounts = Vec::with_capacity(writable_keys.len());
+    if let Some(ui_accounts) = sim.value.accounts {
