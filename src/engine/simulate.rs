@@ -153,3 +153,41 @@ pub async fn simulate_transaction(
 
     let mut post_accounts = Vec::with_capacity(writable_keys.len());
     if let Some(ui_accounts) = sim.value.accounts {
+        for (idx, key) in writable_keys.iter().enumerate() {
+            let snapshot = match ui_accounts.get(idx).and_then(|x| x.as_ref()) {
+                Some(ui) => ui_account_to_snapshot(*key, ui).unwrap_or_else(|_| {
+                    pre_accounts
+                        .get(idx)
+                        .cloned()
+                        .unwrap_or_else(|| empty_snapshot(*key))
+                }),
+                None => pre_accounts
+                    .get(idx)
+                    .cloned()
+                    .unwrap_or_else(|| empty_snapshot(*key)),
+            };
+            post_accounts.push(snapshot);
+        }
+    } else {
+        post_accounts = pre_accounts.clone();
+    }
+
+    Ok(SimulationOutcome {
+        pre_accounts,
+        post_accounts,
+        logs,
+        success,
+        error: err_str,
+        units_consumed: units,
+    })
+}
+
+fn empty_snapshot(pubkey: Pubkey) -> AccountSnapshot {
+    AccountSnapshot {
+        pubkey,
+        lamports: 0,
+        owner: Pubkey::default(),
+        data: vec![],
+        executable: false,
+    }
+}
