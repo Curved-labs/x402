@@ -59,3 +59,47 @@ fn assemble_report(
         None
     };
 
+    let sig_preview = tx
+        .signatures
+        .first()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "(unsigned)".into());
+
+    let fee_payer = match &tx.message {
+        VersionedMessage::Legacy(m) => m.account_keys.first().map(|k| k.to_string()),
+        VersionedMessage::V0(m) => m.account_keys.first().map(|k| k.to_string()),
+    }
+    .unwrap_or_else(|| "?".into());
+
+    let mut report = LegibilityReport {
+        tx_signature_preview: sig_preview,
+        fee_payer,
+        uses_durable_nonce,
+        durable_nonce_warning: durable_warning,
+        instructions,
+        account_diffs,
+        token_transfers,
+        overall_risk: RiskLevel::Low,
+        human_summary: vec![],
+        simulation_logs,
+        simulation_success,
+        simulation_error,
+    };
+
+    classifier::attach(&mut report);
+    report
+}
+
+/// Durable nonce detection: the first instruction of a durable-nonce tx must be a
+/// System Program `AdvanceNonceAccount` (tag 4). This is enforced by the runtime.
+fn detect_durable_nonce(tx: &VersionedTransaction) -> bool {
+    let first_ix = match &tx.message {
+        VersionedMessage::Legacy(m) => m.instructions.first().zip(Some(m.account_keys.as_slice())),
+        VersionedMessage::V0(m) => m.instructions.first().zip(Some(m.account_keys.as_slice())),
+    };
+    let Some((ix, keys)) = first_ix else {
+        return false;
+    };
+    let Some(program_id) = keys.get(ix.program_id_index as usize) else {
+        return false;
+    };
