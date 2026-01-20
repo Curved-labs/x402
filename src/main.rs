@@ -50,3 +50,55 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
         Cmd::Simulate {
+            tx,
+            rpc,
+            json,
+            offline,
+        } => {
+            let raw = base64::engine::general_purpose::STANDARD
+                .decode(tx.as_bytes())
+                .context("failed to base64-decode --tx")?;
+            let versioned: VersionedTransaction = bincode::deserialize(&raw)
+                .context("failed to deserialize versioned transaction")?;
+            let report = if offline {
+                build_report_offline(&versioned)
+            } else {
+                let cfg = parse_rpc(&rpc);
+                build_report(&cfg, &versioned).await?
+            };
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                print_human(&report);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn parse_rpc(s: &str) -> EngineConfig {
+    match s {
+        "devnet" => EngineConfig::devnet(),
+        "mainnet" | "mainnet-beta" => EngineConfig::mainnet_beta(),
+        url if url.starts_with("http") => EngineConfig {
+            rpc_url: url.to_string(),
+            commitment: solana_sdk::commitment_config::CommitmentConfig::confirmed(),
+            replace_blockhash: true,
+        },
+        other => {
+            eprintln!("⚠ unknown rpc alias '{}', defaulting to devnet", other);
+            EngineConfig::devnet()
+        }
+    }
+}
+
+fn print_human(r: &crif::types::LegibilityReport) {
+    println!();
+    println!("================================================================");
+    println!(" SOLANA TRANSACTION LEGIBILITY REPORT");
+    println!("================================================================");
+    println!(" Signature:    {}", r.tx_signature_preview);
+    println!(" Fee payer:    {}", r.fee_payer);
+    println!(
+        " Simulation:   {}",
+        if r.simulation_success {
