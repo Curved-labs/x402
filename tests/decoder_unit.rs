@@ -86,3 +86,40 @@ fn spl_token_transfer_decoded() {
         .expect("decode SplToken Transfer");
     assert_eq!(decoded.instruction_name, "Transfer");
     assert!(
+        decoded.summary.contains("2500000"),
+        "summary: {}",
+        decoded.summary
+    );
+}
+
+#[test]
+fn spl_token_set_authority_high_risk() {
+    let decoder = SplTokenDecoder::new();
+    let mint = Pubkey::new_unique();
+    let current_auth = Pubkey::new_unique();
+    let keys = vec![mint, current_auth, spl_token::ID];
+
+    let data = vec![6u8, 0]; // tag=6 SetAuthority, type placeholder
+    let ix = CompiledInstruction {
+        program_id_index: 2,
+        accounts: vec![0, 1],
+        data,
+    };
+
+    let decoded = decoder.decode(&ix, &keys).expect("decode SetAuthority");
+    assert_eq!(decoded.instruction_name, "SetAuthority");
+    assert_eq!(decoded.risk, RiskLevel::High);
+}
+
+#[test]
+fn registry_resolves_both_programs() {
+    let registry = DecoderRegistry::default_set();
+    assert!(
+        registry.get(&system_program::ID).is_some(),
+        "system not in registry"
+    );
+    assert!(
+        registry.get(&spl_token::ID).is_some(),
+        "spl-token not in registry"
+    );
+}
