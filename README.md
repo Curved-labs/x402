@@ -84,3 +84,40 @@ The engine processes a transaction through a linear pipeline. Each stage feeds t
             |
             v
 +------------------------+
+| simulate_transaction() |  RPC: simulateTransaction with accounts config
+| (post-state)           |  returns post-state + logs + error
++------------------------+
+            |
+            v
++------------------------+
+| compute_account_diffs()|  compares pre/post snapshots
+|                        |  lamport delta, owner change, data mutation
++------------------------+
+            |
+            v
++------------------------+
+| decode_all()           |  DecoderRegistry routes each instruction
+|                        |  to its program-specific decoder
++------------------------+
+            |
+            v
++------------------------+
+| classify()             |  merges instruction risk, state diff signals,
+|                        |  durable nonce, and Drift pattern detection
++------------------------+
+            |
+            v
++------------------------+
+| LegibilityReport       |  final output: risk level, human summary,
+|                        |  decoded instructions, account diffs,
+|                        |  token transfers, simulation logs
++------------------------+
+```
+
+In offline mode, the pipeline skips `fetch_snapshots` and `simulate_transaction`, running the decoder and classifier against the transaction's static structure only. This means account diffs and token transfer synthesis are unavailable, but instruction decoding and risk classification (including Drift pattern detection) work fully.
+
+---
+
+## Build / Installation
+
+```bash
