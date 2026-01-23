@@ -103,3 +103,73 @@ fn detect_durable_nonce(tx: &VersionedTransaction) -> bool {
     let Some(program_id) = keys.get(ix.program_id_index as usize) else {
         return false;
     };
+    if *program_id != solana_sdk::system_program::ID {
+        return false;
+    }
+    if ix.data.len() < 4 {
+        return false;
+    }
+    let tag = u32::from_le_bytes([ix.data[0], ix.data[1], ix.data[2], ix.data[3]]);
+    tag == 4
+}
+
+/// Parse SPL Token / Token-2022 accounts from pre/post snapshots to synthesize
+/// transfer events.
+///
+/// Classic SPL Token accounts are exactly 165 bytes. Token-2022 accounts are at
+/// least 165 bytes — the first 165 bytes share the same layout (mint, owner,
+/// amount at offset 64, ...), followed by a type-length-value extension area.
+/// We only read the base layout here, so both programs work with the same code.
+fn extract_token_transfers(
+    pre: &[crate::types::AccountSnapshot],
+    post: &[crate::types::AccountSnapshot],
+) -> Vec<TokenTransfer> {
+    let token_2022_id = crate::decoder::token_2022::TOKEN_2022_PROGRAM_ID;
+    let mut transfers = Vec::new();
+    for (p, q) in pre.iter().zip(post.iter()) {
+        if p.data.len() < 165 || q.data.len() < 165 {
+            continue;
+        }
+        let p_is_token = p.owner == spl_token::ID || p.owner == token_2022_id;
+        let q_is_token = q.owner == spl_token::ID || q.owner == token_2022_id;
+        if !p_is_token || !q_is_token {
+            continue;
+        }
+        let pre_amount = read_u64_le(&p.data, 64);
+        let post_amount = read_u64_le(&q.data, 64);
+        if pre_amount == post_amount {
+            continue;
+        }
+        let mint_bytes: [u8; 32] = p.data[0..32].try_into().unwrap_or([0u8; 32]);
+        let mint = solana_sdk::pubkey::Pubkey::new_from_array(mint_bytes).to_string();
+        let (from, to, raw) = if post_amount < pre_amount {
+            (
+                p.pubkey.to_string(),
+                "?".to_string(),
+                pre_amount - post_amount,
+            )
+        } else {
+            (
+                "?".to_string(),
+                p.pubkey.to_string(),
+                post_amount - pre_amount,
+            )
+        };
+        transfers.push(TokenTransfer {
+            mint,
+            from,
+            to,
+            ui_amount: raw as f64,
+            raw_amount: raw,
+            decimals: 0,
+        });
+    }
+    transfers
+}
+
+fn read_u64_le(data: &[u8], offset: usize) -> u64 {
+    if data.len() < offset + 8 {
+        return 0;
+    }
+    u64::from_le_bytes(data[offset..offset + 8].try_into().unwrap_or([0u8; 8]))
+}
