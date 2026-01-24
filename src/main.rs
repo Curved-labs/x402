@@ -102,3 +102,46 @@ fn print_human(r: &crif::types::LegibilityReport) {
     println!(
         " Simulation:   {}",
         if r.simulation_success {
+            "success"
+        } else {
+            "FAILED"
+        }
+    );
+    if let Some(e) = &r.simulation_error {
+        println!("   error:     {}", e);
+    }
+    println!(" Overall risk: {}", risk_badge(&r.overall_risk));
+    if r.uses_durable_nonce {
+        println!(" ! DURABLE NONCE: yes - this transaction has no expiry");
+    }
+    println!("----------------------------------------------------------------");
+    println!(" Human-readable summary:");
+    for line in &r.human_summary {
+        println!("   {}", line);
+    }
+    println!("----------------------------------------------------------------");
+    println!(" Instructions ({}):", r.instructions.len());
+    for (i, ix) in r.instructions.iter().enumerate() {
+        println!(
+            "  #{} {} :: {} [{}]",
+            i,
+            ix.program_name,
+            ix.instruction_name,
+            risk_badge(&ix.risk)
+        );
+        println!("     {}", ix.summary);
+    }
+    println!("----------------------------------------------------------------");
+    println!(" Account state diffs ({}):", r.account_diffs.len());
+    for d in &r.account_diffs {
+        println!(
+            "  {} lamports {} -> {} (d {}), data changed: {}",
+            d.address, d.lamports_before, d.lamports_after, d.lamports_delta, d.data_changed
+        );
+    }
+    if !r.token_transfers.is_empty() {
+        println!("----------------------------------------------------------------");
+        println!(" Token transfers:");
+        for t in &r.token_transfers {
+            println!(
+                "  {} -> {} ({} of mint {})",
