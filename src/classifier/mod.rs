@@ -65,3 +65,34 @@ pub fn classify(
         );
         summary.push(
             "   Signing means you are authorizing this action indefinitely. Revocation requires advancing the nonce account.".into(),
+        );
+    }
+
+    // Large lamport outflow from any single account → escalate.
+    for d in diffs {
+        if d.lamports_delta <= -1_000_000_000 {
+            overall = overall.clone().max(RiskLevel::High);
+            summary.push(format!(
+                "⚠ Account {} loses {:.4} SOL",
+                short(&d.address),
+                (-d.lamports_delta) as f64 / 1e9
+            ));
+        }
+        if d.owner_before != d.owner_after {
+            overall = overall.clone().max(RiskLevel::Critical);
+            summary.push(format!(
+                "⚠ Account {} changes owner program ({} → {})",
+                short(&d.address),
+                short(d.owner_before.as_deref().unwrap_or("?")),
+                short(d.owner_after.as_deref().unwrap_or("?"))
+            ));
+        }
+    }
+
+    // Token transfers — if any single transfer moves ≥ 1M raw units on a token with ≥6 decimals, surface it.
+    for t in token_transfers {
+        summary.push(format!(
+            "💸 Token transfer: {} → {} ({} of mint {})",
+            short(&t.from),
+            short(&t.to),
+            t.ui_amount,
