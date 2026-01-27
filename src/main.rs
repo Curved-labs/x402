@@ -145,3 +145,29 @@ fn print_human(r: &crif::types::LegibilityReport) {
         for t in &r.token_transfers {
             println!(
                 "  {} -> {} ({} of mint {})",
+                t.from, t.to, t.raw_amount, t.mint
+            );
+        }
+    }
+    println!("----------------------------------------------------------------");
+    println!(" Simulation logs ({}):", r.simulation_logs.len());
+    for l in r.simulation_logs.iter().take(20) {
+        println!("  . {}", l);
+    }
+    if r.simulation_logs.len() > 20 {
+        println!(
+            "  ... ({} more lines truncated)",
+            r.simulation_logs.len() - 20
+        );
+    }
+    println!("================================================================");
+}
+
+fn risk_badge(r: &RiskLevel) -> &'static str {
+    match r {
+        RiskLevel::Low => "LOW",
+        RiskLevel::Medium => "MEDIUM",
+        RiskLevel::High => "HIGH",
+        RiskLevel::Critical => "CRITICAL",
+    }
+}
