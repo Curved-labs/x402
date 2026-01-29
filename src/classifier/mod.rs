@@ -96,3 +96,27 @@ pub fn classify(
             short(&t.from),
             short(&t.to),
             t.ui_amount,
+            short(&t.mint)
+        ));
+    }
+
+    (overall, summary)
+}
+
+pub fn attach(report: &mut LegibilityReport) {
+    let (risk, summary) = classify(
+        &report.instructions,
+        &report.account_diffs,
+        &report.token_transfers,
+        report.uses_durable_nonce,
+    );
+    report.overall_risk = risk;
+    report.human_summary = summary;
+}
+
+fn short(s: &str) -> String {
+    if s.len() <= 12 {
+        return s.to_string();
+    }
+    format!("{}..{}", &s[..4], &s[s.len() - 4..])
+}
