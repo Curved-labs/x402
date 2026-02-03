@@ -121,3 +121,39 @@ In offline mode, the pipeline skips `fetch_snapshots` and `simulate_transaction`
 ## Build / Installation
 
 ```bash
+git clone https://github.com/Crifdotfun/crif
+cd crif
+cargo build --release
+```
+
+The release binary is at `target/release/crif`. Requires Rust 1.75+ and a working `cargo` installation.
+
+---
+
+## Quick Start
+
+### CLI
+
+Simulate a base64-encoded transaction against devnet:
+
+```bash
+crif simulate --tx <BASE64_VERSIONED_TX> --rpc devnet
+```
+
+Output raw JSON instead of the human-readable format:
+
+```bash
+crif simulate --tx <BASE64_VERSIONED_TX> --rpc mainnet --json
+```
+
+Run in offline mode (no RPC, decode + classify only):
+
+```bash
+crif simulate --tx <BASE64_VERSIONED_TX> --offline
+```
+
+### Library
+
+Use crif as a Rust library in your own project:
+
+```rust
