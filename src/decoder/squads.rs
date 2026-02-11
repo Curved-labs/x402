@@ -85,3 +85,77 @@ fn discriminator_table() -> &'static [([u8; 8], SquadsInstruction)] {
     TABLE.get_or_init(|| {
         SquadsInstruction::all()
             .iter()
+            .map(|ix| (anchor_discriminator(ix.ix_name()), *ix))
+            .collect()
+    })
+}
+
+pub struct SquadsDecoder {
+    program_id: Pubkey,
+}
+
+impl SquadsDecoder {
+    pub fn new() -> Self {
+        Self {
+            program_id: Pubkey::from_str(SQUADS_V4_PROGRAM_ID)
+                .expect("hardcoded Squads program id must parse"),
+        }
+    }
+}
+
+impl ProgramDecoder for SquadsDecoder {
+    fn program_id(&self) -> Pubkey {
+        self.program_id
+    }
+
+    fn program_name(&self) -> &'static str {
+        "Squads v4"
+    }
+
+    fn decode(
+        &self,
+        ix: &CompiledInstruction,
+        account_keys: &[Pubkey],
+    ) -> Option<DecodedInstruction> {
+        if ix.data.len() < 8 {
+            return Some(generic_unknown(ix, account_keys, "data too short"));
+        }
+        let mut disc = [0u8; 8];
+        disc.copy_from_slice(&ix.data[..8]);
+
+        let matched = discriminator_table()
+            .iter()
+            .find(|(d, _)| *d == disc)
+            .map(|(_, ix_kind)| *ix_kind);
+
+        let accts: Vec<String> = ix
+            .accounts
+            .iter()
+            .filter_map(|i| account_keys.get(*i as usize).map(|k| k.to_string()))
+            .collect();
+
+        let (name, summary, risk, reasons) = match matched {
+            Some(SquadsInstruction::VaultTransactionCreate) => (
+                "vault_transaction_create",
+                "Squads: queue a new VAULT transaction on a multisig (inner instructions will be executed from the treasury vault when approved)".to_string(),
+                RiskLevel::High,
+                vec![
+                    "Creates a transaction that, once approved, will spend from the multisig vault".into(),
+                    "Inner instructions are NOT yet decoded here — review them separately".into(),
+                ],
+            ),
+            Some(SquadsInstruction::VaultTransactionExecute) => (
+                "vault_transaction_execute",
+                "Squads: EXECUTE a previously approved vault transaction — funds will move from the multisig vault NOW".to_string(),
+                RiskLevel::Critical,
+                vec![
+                    "This instruction actually moves funds out of a multisig vault".into(),
+                    "Verify the inner instructions of the referenced vault_transaction account".into(),
+                ],
+            ),
+            Some(SquadsInstruction::ConfigTransactionCreate) => (
+                "config_transaction_create",
+                "Squads: queue a multisig CONFIG change (threshold / members / timelock)".to_string(),
+                RiskLevel::High,
+                vec!["Governance change — will alter who can sign and under what rules".into()],
+            ),
