@@ -54,3 +54,59 @@ fn squads_vault_execute_flagged_critical() {
     assert!(!decoded.risk_reasons.is_empty());
     assert!(decoded.summary.to_lowercase().contains("vault"));
 }
+
+#[test]
+fn squads_config_execute_flagged_critical() {
+    let decoder = SquadsDecoder::new();
+    let keys = vec![
+        Pubkey::new_unique(),
+        Pubkey::new_unique(),
+        squads_program_id(),
+    ];
+    let ix = build_squads_ix(SquadsInstruction::ConfigTransactionExecute, 2, &keys);
+    let decoded = decoder.decode(&ix, &keys).expect("decode config_execute");
+
+    assert_eq!(decoded.instruction_name, "config_transaction_execute");
+    assert_eq!(decoded.risk, RiskLevel::Critical);
+    // the Drift reference should be in the risk reasons
+    let joined = decoded.risk_reasons.join(" ").to_lowercase();
+    assert!(
+        joined.contains("drift"),
+        "expected Drift reference, got: {:?}",
+        decoded.risk_reasons
+    );
+}
+
+#[test]
+fn squads_unknown_discriminator_falls_back() {
+    let decoder = SquadsDecoder::new();
+    let keys = vec![Pubkey::new_unique(), squads_program_id()];
+    // Arbitrary, never-matching 8 bytes
+    let ix = CompiledInstruction {
+        program_id_index: 1,
+        accounts: vec![0],
+        data: vec![0xff; 16],
+    };
+    let decoded = decoder.decode(&ix, &keys).expect("decode fallback");
+    assert_eq!(decoded.program_name, "Squads v4");
+    assert_eq!(decoded.risk, RiskLevel::Medium);
+}
+
+#[test]
+fn drift_pattern_critical_via_classifier() {
+    // Build a synthetic decoded instruction matching config_transaction_execute
+    // and pass `uses_durable_nonce=true` to the classifier. This must yield Critical.
+    let decoded = DecodedInstruction {
+        program_id: SQUADS_V4_PROGRAM_ID.to_string(),
+        program_name: "Squads v4".to_string(),
+        instruction_name: "config_transaction_execute".to_string(),
+        summary: "test".to_string(),
+        accounts: vec![],
+        risk: RiskLevel::Critical,
+        risk_reasons: vec!["test".into()],
+    };
+
+    let (overall, summary) = classify(&[decoded], &[], &[], true);
+    assert_eq!(overall, RiskLevel::Critical);
+    let joined = summary.join("\n").to_lowercase();
+    assert!(
