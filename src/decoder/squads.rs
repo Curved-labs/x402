@@ -159,3 +159,90 @@ impl ProgramDecoder for SquadsDecoder {
                 RiskLevel::High,
                 vec!["Governance change — will alter who can sign and under what rules".into()],
             ),
+            Some(SquadsInstruction::ConfigTransactionExecute) => (
+                "config_transaction_execute",
+                "Squads: EXECUTE a multisig config change (threshold / members / timelock change applies NOW)".to_string(),
+                RiskLevel::Critical,
+                vec![
+                    "Governance change being applied — may add/remove signers, lower threshold, or drop timelock".into(),
+                    "This is the class of instruction used in the April 2026 Drift exploit".into(),
+                ],
+            ),
+            Some(SquadsInstruction::ProposalCreate) => (
+                "proposal_create",
+                "Squads: create a new proposal on a multisig".to_string(),
+                RiskLevel::Medium,
+                vec![],
+            ),
+            Some(SquadsInstruction::ProposalApprove) => (
+                "proposal_approve",
+                "Squads: APPROVE a multisig proposal — your signature contributes to the approval threshold".to_string(),
+                RiskLevel::High,
+                vec![
+                    "Approving a proposal — verify the underlying transaction it refers to BEFORE signing".into(),
+                    "If this is combined with a durable nonce, your approval can be replayed later".into(),
+                ],
+            ),
+            Some(SquadsInstruction::ProposalReject) => (
+                "proposal_reject",
+                "Squads: reject a multisig proposal".to_string(),
+                RiskLevel::Low,
+                vec![],
+            ),
+            Some(SquadsInstruction::MultisigCreate) | Some(SquadsInstruction::MultisigCreateV2) => (
+                "multisig_create",
+                "Squads: create a new multisig".to_string(),
+                RiskLevel::Medium,
+                vec![],
+            ),
+            Some(SquadsInstruction::MultisigSetConfig) => (
+                "multisig_set_config",
+                "Squads: directly modify multisig configuration".to_string(),
+                RiskLevel::Critical,
+                vec!["Direct config mutation — changes to signers/threshold/timelock".into()],
+            ),
+            None => {
+                return Some(generic_unknown(
+                    ix,
+                    account_keys,
+                    "unrecognized Squads discriminator",
+                ));
+            }
+        };
+
+        Some(DecodedInstruction {
+            program_id: self.program_id.to_string(),
+            program_name: "Squads v4".to_string(),
+            instruction_name: name.to_string(),
+            summary,
+            accounts: accts,
+            risk,
+            risk_reasons: reasons,
+        })
+    }
+}
+
+fn generic_unknown(
+    ix: &CompiledInstruction,
+    account_keys: &[Pubkey],
+    why: &str,
+) -> DecodedInstruction {
+    DecodedInstruction {
+        program_id: SQUADS_V4_PROGRAM_ID.to_string(),
+        program_name: "Squads v4".to_string(),
+        instruction_name: "unknown".to_string(),
+        summary: format!(
+            "Unrecognized Squads v4 instruction ({}) — {} accounts, {} data bytes",
+            why,
+            ix.accounts.len(),
+            ix.data.len()
+        ),
+        accounts: ix
+            .accounts
+            .iter()
+            .filter_map(|i| account_keys.get(*i as usize).map(|k| k.to_string()))
+            .collect(),
+        risk: RiskLevel::Medium,
+        risk_reasons: vec!["Unknown Squads instruction — require human review".into()],
+    }
+}
