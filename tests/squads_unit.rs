@@ -110,3 +110,51 @@ fn drift_pattern_critical_via_classifier() {
     assert_eq!(overall, RiskLevel::Critical);
     let joined = summary.join("\n").to_lowercase();
     assert!(
+        joined.contains("drift"),
+        "classifier summary missing Drift reference:\n{}",
+        joined
+    );
+    assert!(
+        joined.contains("critical"),
+        "classifier summary missing CRITICAL flag:\n{}",
+        joined
+    );
+}
+
+#[test]
+fn benign_tx_does_not_trigger_drift_pattern() {
+    // An innocuous SOL transfer with no durable nonce and no multisig admin action
+    // must stay at LOW risk and must not mention the Drift pattern.
+    let decoded = DecodedInstruction {
+        program_id: system_program::ID.to_string(),
+        program_name: "System Program".to_string(),
+        instruction_name: "Transfer".to_string(),
+        summary: "benign".to_string(),
+        accounts: vec![],
+        risk: RiskLevel::Low,
+        risk_reasons: vec![],
+    };
+
+    let (overall, summary) = classify(&[decoded], &[], &[], false);
+    assert_eq!(overall, RiskLevel::Low);
+    let joined = summary.join("\n").to_lowercase();
+    assert!(!joined.contains("drift"));
+    assert!(!joined.contains("durable nonce"));
+}
+
+#[test]
+fn durable_nonce_alone_is_high_not_critical() {
+    // durable nonce without a multisig admin action: elevates to HIGH, not CRITICAL.
+    let decoded = DecodedInstruction {
+        program_id: system_program::ID.to_string(),
+        program_name: "System Program".to_string(),
+        instruction_name: "Transfer".to_string(),
+        summary: "nonced transfer".to_string(),
+        accounts: vec![],
+        risk: RiskLevel::Low,
+        risk_reasons: vec![],
+    };
+
+    let (overall, _) = classify(&[decoded], &[], &[], true);
+    assert_eq!(overall, RiskLevel::High);
+}
