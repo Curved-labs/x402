@@ -157,3 +157,28 @@ crif simulate --tx <BASE64_VERSIONED_TX> --offline
 Use crif as a Rust library in your own project:
 
 ```rust
+use crif::engine::EngineConfig;
+use crif::report::{build_report, build_report_offline};
+
+// Online mode: simulate against live RPC
+let cfg = EngineConfig::devnet();
+let report = build_report(&cfg, &versioned_tx).await?;
+// report => LegibilityReport {
+//     overall_risk: Critical,
+//     uses_durable_nonce: true,
+//     instructions: [...],
+//     account_diffs: [...],
+//     human_summary: ["CRITICAL -- this transaction matches the APRIL 2026 DRIFT EXPLOIT PATTERN", ...],
+//     ...
+// }
+
+// Offline mode: decode + classify without any network call
+let report = build_report_offline(&versioned_tx);
+// report => LegibilityReport {
+//     overall_risk: High,
+//     simulation_logs: ["(offline mode -- simulation skipped)"],
+//     ...
+// }
+```
+
+---
