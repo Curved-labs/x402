@@ -111,3 +111,40 @@ static DRIFT_V2_IX: &[AnchorIx] = &[
     AnchorIx {
         ix_name: "liquidate_borrow_for_perp_pnl",
         display_name: "liquidate_borrow_for_perp_pnl",
+        summary: "Drift: liquidate a spot borrow to cover perp losses",
+        risk: RiskLevel::High,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "update_user_name",
+        display_name: "update_user_name",
+        summary: "Drift: set the user account display name",
+        risk: RiskLevel::Low,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "update_amms",
+        display_name: "update_amms",
+        summary: "Drift: update AMM oracle/mark prices",
+        risk: RiskLevel::Low,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "update_user_delegate",
+        display_name: "update_user_delegate",
+        summary: "Drift: set/unset a delegate that can trade on this user account",
+        risk: RiskLevel::High,
+        reasons: &[
+            "Delegate change — the new delegate will be able to place orders on this account",
+        ],
+    },
+];
+
+pub fn decoder() -> GenericAnchorDecoder {
+    GenericAnchorDecoder::new(
+        DRIFT_V2_PROGRAM_ID,
+        "Drift v2",
+        DRIFT_V2_IX,
+        RiskLevel::Medium,
+    )
+}
