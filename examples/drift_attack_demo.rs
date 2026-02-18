@@ -76,3 +76,80 @@ fn main() {
             AccountMeta::new(config_tx_account, false),
             AccountMeta::new(rent_payer, false),
             AccountMeta::new_readonly(system_program::ID, false),
+        ],
+        data,
+    };
+
+    // ---- Compile v0 message -----------------------------------------------
+    let blockhash = Hash::new_from_array([1u8; 32]); // stand-in — never validated
+    let msg = v0::Message::try_compile(
+        &council_member.pubkey(),
+        &[advance_nonce, squads_execute],
+        &[],
+        blockhash,
+    )
+    .expect("compile v0 message");
+
+    let tx = VersionedTransaction::try_new(VersionedMessage::V0(msg), &[&council_member])
+        .expect("sign synthetic tx");
+
+    // ---- Serialize + base64 ----------------------------------------------
+    let raw = bincode::serialize(&tx).expect("bincode serialize");
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&raw);
+
+    eprintln!("=== Drift 2026 attack reproduction — synthetic tx ===");
+    eprintln!(" signer (council member): {}", council_member.pubkey());
+    eprintln!(" multisig PDA (fake):     {}", multisig);
+    eprintln!(" vault PDA (fake):        {}", vault);
+    eprintln!(" config tx account:       {}", config_tx_account);
+    eprintln!(" nonce account:           {}", nonce_account);
+    eprintln!(" recent_blockhashes:      {}", recent_blockhashes);
+    eprintln!(" instructions: AdvanceNonceAccount, Squads.config_transaction_execute");
+    eprintln!();
+
+    // Print the raw base64 on its own line (easy to grep/cut)
+    println!("BASE64: {}", b64);
+
+    // Also print the offline legibility report so the demo is self-contained.
+    let report = build_report_offline(&tx);
+    eprintln!();
+    eprintln!("=== Offline legibility report ===");
+    eprintln!(
+        "{}",
+        serde_json::to_string_pretty(&report).expect("serde json")
+    );
+
+    // Sanity — drive home the expected verdict
+    eprintln!();
+    eprintln!("overall_risk = {:?}", report.overall_risk);
+    eprintln!("uses_durable_nonce = {}", report.uses_durable_nonce);
+    assert!(
+        matches!(report.overall_risk, crif::types::RiskLevel::Critical),
+        "expected CRITICAL, got {:?}",
+        report.overall_risk
+    );
+
+    // Bonus — decompile the compiled instructions back to prove the decoder
+    // sees what we built, independent of the registry lookup path.
+    if let VersionedMessage::V0(m) = &tx.message {
+        for (i, ci) in m.instructions.iter().enumerate() {
+            let program = m
+                .account_keys
+                .get(ci.program_id_index as usize)
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "?".into());
+            eprintln!(
+                "  ix #{}  program={}  data_len={}  discriminator/tag={:02x?}",
+                i,
+                program,
+                ci.data.len(),
+                &ci.data[..ci.data.len().min(8)]
+            );
+            let _ = ci_as_hint(ci);
+        }
+    }
+}
+
+fn ci_as_hint(ci: &CompiledInstruction) -> &CompiledInstruction {
+    ci
+}
