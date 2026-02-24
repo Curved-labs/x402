@@ -71,3 +71,76 @@ impl GenericAnchorDecoder {
         self.cache.get_or_init(|| {
             self.table
                 .iter()
+                .map(|row| (anchor_discriminator(row.ix_name), *row))
+                .collect()
+        })
+    }
+}
+
+impl ProgramDecoder for GenericAnchorDecoder {
+    fn program_id(&self) -> Pubkey {
+        self.program_id
+    }
+
+    fn program_name(&self) -> &'static str {
+        self.program_name
+    }
+
+    fn decode(
+        &self,
+        ix: &CompiledInstruction,
+        account_keys: &[Pubkey],
+    ) -> Option<DecodedInstruction> {
+        let accts: Vec<String> = ix
+            .accounts
+            .iter()
+            .filter_map(|i| account_keys.get(*i as usize).map(|k| k.to_string()))
+            .collect();
+
+        if ix.data.len() < 8 {
+            return Some(DecodedInstruction {
+                program_id: self.program_id.to_string(),
+                program_name: self.program_name.to_string(),
+                instruction_name: "unknown".to_string(),
+                summary: format!(
+                    "Instruction too short to contain Anchor discriminator ({} bytes)",
+                    ix.data.len()
+                ),
+                accounts: accts,
+                risk: self.fallback_risk.clone(),
+                risk_reasons: vec!["Missing Anchor discriminator".into()],
+            });
+        }
+
+        let mut disc = [0u8; 8];
+        disc.copy_from_slice(&ix.data[..8]);
+
+        if let Some((_, row)) = self.lookup_table().iter().find(|(d, _)| *d == disc) {
+            Some(DecodedInstruction {
+                program_id: self.program_id.to_string(),
+                program_name: self.program_name.to_string(),
+                instruction_name: row.display_name.to_string(),
+                summary: row.summary.to_string(),
+                accounts: accts,
+                risk: row.risk.clone(),
+                risk_reasons: row.reasons.iter().map(|s| s.to_string()).collect(),
+            })
+        } else {
+            Some(DecodedInstruction {
+                program_id: self.program_id.to_string(),
+                program_name: self.program_name.to_string(),
+                instruction_name: "unknown".to_string(),
+                summary: format!(
+                    "Unrecognized {} instruction (discriminator {:02x?})",
+                    self.program_name, disc
+                ),
+                accounts: accts,
+                risk: self.fallback_risk.clone(),
+                risk_reasons: vec![format!(
+                    "Unknown {} discriminator — requires human review",
+                    self.program_name
+                )],
+            })
+        }
+    }
+}
