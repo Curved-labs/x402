@@ -47,3 +47,52 @@ static JUPITER_V6_IX: &[AnchorIx] = &[
     AnchorIx {
         ix_name: "shared_accounts_route_with_token_ledger",
         display_name: "shared_accounts_route_with_token_ledger",
+        summary: "Jupiter: shared-accounts swap using a token ledger",
+        risk: RiskLevel::Medium,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "shared_accounts_exact_out_route",
+        display_name: "shared_accounts_exact_out_route",
+        summary: "Jupiter: shared-accounts exact-out swap",
+        risk: RiskLevel::Medium,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "set_token_ledger",
+        display_name: "set_token_ledger",
+        summary: "Jupiter: update the token ledger amount prior to a ledger-based route",
+        risk: RiskLevel::Low,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "create_open_orders",
+        display_name: "create_open_orders",
+        summary: "Jupiter: create an open-orders account for a Serum/OpenBook market",
+        risk: RiskLevel::Low,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "claim",
+        display_name: "claim",
+        summary: "Jupiter: claim tokens from the aggregator program",
+        risk: RiskLevel::Low,
+        reasons: &[],
+    },
+    AnchorIx {
+        ix_name: "claim_token",
+        display_name: "claim_token",
+        summary: "Jupiter: claim tokens",
+        risk: RiskLevel::Low,
+        reasons: &[],
+    },
+];
+
+pub fn decoder() -> GenericAnchorDecoder {
+    GenericAnchorDecoder::new(
+        JUPITER_V6_PROGRAM_ID,
+        "Jupiter v6",
+        JUPITER_V6_IX,
+        RiskLevel::Medium,
+    )
+}
