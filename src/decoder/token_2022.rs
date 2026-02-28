@@ -52,3 +52,57 @@ impl ProgramDecoder for Token2022Decoder {
         // memo_transfer, cpi_guard, transfer_hook, etc.).
         if tag < 26 {
             if let Some(mut decoded) = decode_spl_token_instruction(ix, account_keys) {
+                decoded.program_id = TOKEN_2022_PROGRAM_ID.to_string();
+                decoded.program_name = "Token-2022".to_string();
+                return Some(decoded);
+            }
+        }
+
+        let accts: Vec<String> = ix
+            .accounts
+            .iter()
+            .filter_map(|i| account_keys.get(*i as usize).map(|k| k.to_string()))
+            .collect();
+
+        let (name, summary, risk) = match tag {
+            26 => ("transfer_fee_extension", "Token-2022: transfer-fee extension instruction", RiskLevel::Medium),
+            27 => ("confidential_transfer_extension", "Token-2022: confidential transfer extension instruction", RiskLevel::Medium),
+            28 => ("default_account_state_extension", "Token-2022: default account state extension", RiskLevel::Medium),
+            29 => ("reallocate", "Token-2022: reallocate account to fit more extensions", RiskLevel::Low),
+            30 => ("memo_transfer_extension", "Token-2022: require-memo extension instruction", RiskLevel::Low),
+            31 => ("create_native_mint", "Token-2022: create native mint", RiskLevel::Low),
+            32 => ("initialize_non_transferable_mint", "Token-2022: initialize a NON-TRANSFERABLE mint (tokens cannot be moved after mint)", RiskLevel::High),
+            33 => ("interest_bearing_mint_extension", "Token-2022: interest-bearing mint extension", RiskLevel::Medium),
+            34 => ("cpi_guard_extension", "Token-2022: CPI guard extension", RiskLevel::Low),
+            35 => ("initialize_permanent_delegate", "Token-2022: initialize a PERMANENT DELEGATE — this delegate can move tokens out of any account of this mint without owner consent", RiskLevel::Critical),
+            36 => ("transfer_hook_extension", "Token-2022: transfer-hook extension (custom program runs on every transfer)", RiskLevel::High),
+            37 => ("confidential_transfer_fee_extension", "Token-2022: confidential transfer-fee extension", RiskLevel::Medium),
+            38 => ("withdraw_excess_lamports", "Token-2022: withdraw excess lamports from a token account", RiskLevel::Medium),
+            39 => ("metadata_pointer_extension", "Token-2022: metadata pointer extension", RiskLevel::Low),
+            _ => ("token_2022_unknown", "Token-2022: unknown extension instruction", RiskLevel::Medium),
+        };
+
+        Some(DecodedInstruction {
+            program_id: TOKEN_2022_PROGRAM_ID.to_string(),
+            program_name: "Token-2022".to_string(),
+            instruction_name: name.to_string(),
+            summary: summary.to_string(),
+            accounts: accts,
+            risk: risk.clone(),
+            risk_reasons: match risk {
+                RiskLevel::Critical => vec![
+                    "Permanent delegate gives an external authority unilateral move-tokens power for this mint".into(),
+                    "Any holder of this mint is subject to the permanent delegate forever".into(),
+                ],
+                RiskLevel::High => {
+                    if name == "transfer_hook_extension" {
+                        vec!["Every transfer will invoke a custom program — verify what that program does".into()]
+                    } else {
+                        vec!["Token-2022 extension with long-term implications — verify before signing".into()]
+                    }
+                }
+                _ => vec![],
+            },
+        })
+    }
+}
