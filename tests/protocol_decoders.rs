@@ -105,3 +105,83 @@ fn drift_liquidate_perp_is_high_risk() {
     let decoded = decoder.decode(&ix, &keys).expect("decode liquidate_perp");
     assert_eq!(decoded.instruction_name, "liquidate_perp");
     assert_eq!(decoded.risk, RiskLevel::High);
+}
+
+#[test]
+fn drift_update_user_delegate_high_risk() {
+    let registry = DecoderRegistry::default_set();
+    let decoder = registry.get(&DRIFT_V2_PROGRAM_ID).unwrap();
+    let keys = keys_with_program(DRIFT_V2_PROGRAM_ID, 3);
+    let ix = build_anchor_ix("update_user_delegate", 3, keys.len());
+    let decoded = decoder
+        .decode(&ix, &keys)
+        .expect("decode update_user_delegate");
+    assert_eq!(decoded.risk, RiskLevel::High);
+    assert!(!decoded.risk_reasons.is_empty());
+}
+
+// -------- Kamino Lend --------
+
+#[test]
+fn kamino_borrow_is_high_risk() {
+    let registry = DecoderRegistry::default_set();
+    let decoder = registry.get(&KAMINO_LEND_PROGRAM_ID).unwrap();
+    let keys = keys_with_program(KAMINO_LEND_PROGRAM_ID, 6);
+    let ix = build_anchor_ix("borrow_obligation_liquidity", 6, keys.len());
+    let decoded = decoder.decode(&ix, &keys).expect("decode kamino borrow");
+    assert_eq!(decoded.program_name, "Kamino Lend");
+    assert_eq!(decoded.instruction_name, "borrow_obligation_liquidity");
+    assert_eq!(decoded.risk, RiskLevel::High);
+}
+
+#[test]
+fn kamino_withdraw_collateral_is_high_risk() {
+    let registry = DecoderRegistry::default_set();
+    let decoder = registry.get(&KAMINO_LEND_PROGRAM_ID).unwrap();
+    let keys = keys_with_program(KAMINO_LEND_PROGRAM_ID, 6);
+    let ix = build_anchor_ix("withdraw_obligation_collateral", 6, keys.len());
+    let decoded = decoder
+        .decode(&ix, &keys)
+        .expect("decode withdraw_obligation_collateral");
+    assert_eq!(decoded.risk, RiskLevel::High);
+}
+
+#[test]
+fn kamino_deposit_reserve_is_medium() {
+    let registry = DecoderRegistry::default_set();
+    let decoder = registry.get(&KAMINO_LEND_PROGRAM_ID).unwrap();
+    let keys = keys_with_program(KAMINO_LEND_PROGRAM_ID, 4);
+    let ix = build_anchor_ix("deposit_reserve_liquidity", 4, keys.len());
+    let decoded = decoder.decode(&ix, &keys).expect("decode deposit_reserve");
+    assert_eq!(decoded.risk, RiskLevel::Medium);
+}
+
+// -------- MarginFi v2 --------
+
+#[test]
+fn marginfi_account_authority_transfer_is_critical() {
+    let registry = DecoderRegistry::default_set();
+    let decoder = registry.get(&MARGINFI_V2_PROGRAM_ID).unwrap();
+    let keys = keys_with_program(MARGINFI_V2_PROGRAM_ID, 3);
+    let ix = build_anchor_ix("marginfi_account_set_account_authority", 3, keys.len());
+    let decoded = decoder
+        .decode(&ix, &keys)
+        .expect("decode set_account_authority");
+    assert_eq!(decoded.program_name, "MarginFi v2");
+    assert_eq!(decoded.risk, RiskLevel::Critical);
+    assert!(!decoded.risk_reasons.is_empty());
+}
+
+#[test]
+fn marginfi_borrow_is_high_risk() {
+    let registry = DecoderRegistry::default_set();
+    let decoder = registry.get(&MARGINFI_V2_PROGRAM_ID).unwrap();
+    let keys = keys_with_program(MARGINFI_V2_PROGRAM_ID, 5);
+    let ix = build_anchor_ix("lending_account_borrow", 5, keys.len());
+    let decoded = decoder
+        .decode(&ix, &keys)
+        .expect("decode lending_account_borrow");
+    assert_eq!(decoded.risk, RiskLevel::High);
+}
+
+// -------- Token-2022 --------
