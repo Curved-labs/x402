@@ -182,3 +182,28 @@ let report = build_report_offline(&versioned_tx);
 ```
 
 ---
+
+## Project Structure
+
+```
+crif/
+├── src/
+│   ├── lib.rs                  crate root, re-exports all modules
+│   ├── main.rs                 CLI entry point, clap arg parsing, human-readable printer
+│   ├── types.rs                LegibilityReport, AccountDiff, AccountSnapshot, TokenTransfer,
+│   │                           DecodedInstruction, RiskLevel
+│   ├── report.rs               build_report(), build_report_offline(), detect_durable_nonce(),
+│   │                           extract_token_transfers(), assemble_report()
+│   ├── engine/
+│   │   ├── mod.rs              re-exports simulate + diff
+│   │   ├── simulate.rs         simulate_transaction(), fetch_snapshots(), EngineConfig,
+│   │   │                       SimulationOutcome, collect_writable_accounts()
+│   │   └── diff.rs             compute_account_diffs() -- pre/post snapshot comparison
+│   ├── decoder/
+│   │   ├── mod.rs              ProgramDecoder trait, decode_all() dispatcher
+│   │   ├── registry.rs         DecoderRegistry -- program_id -> decoder lookup table
+│   │   ├── system.rs           System Program decoder (CreateAccount, Transfer, Nonce, ...)
+│   │   ├── spl_token.rs        SPL Token decoder (Transfer, MintTo, Burn, CloseAccount, ...)
+│   │   ├── token_2022.rs       Token-2022 / Token Extensions decoder
+│   │   ├── squads.rs           Squads v4 multisig decoder
+│   │   ├── anchor_generic.rs   Generic Anchor program decoder (8-byte discriminator matching)
