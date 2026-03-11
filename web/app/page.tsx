@@ -319,3 +319,217 @@ export default function Page() {
                   sle simulate --tx $ATTACK_B64 --offline
                 </span>
               </div>
+              {`================================================================
+ `}
+              <span className="ok">SOLANA TRANSACTION LEGIBILITY REPORT</span>
+              {`
+================================================================
+ Signature:    4dLPchZ8d2eCX2eobPtT9eN4DHwxmWZZomvPiqQkdwg...
+ Fee payer:    4kfEfEk7HrCLpdqo3vtrMYYF9ehzCAm7i4wZeK5f6syi
+ Simulation:   `}
+              <span className="ok">success</span>
+              {`
+ Overall risk: `}
+              <span className="danger">CRITICAL</span>
+              {`
+ `}
+              <span className="warn">
+                ! DURABLE NONCE: yes - this transaction has no expiry
+              </span>
+              {`
+----------------------------------------------------------------
+ Human-readable summary:
+
+   [System Program] AdvanceNonceAccount
+      `}
+              <span className="warn">
+                ! Durable nonce advance — tx was prepared earlier
+                        and kept valid via nonce
+              </span>
+              {`
+
+   [Squads v4] config_transaction_execute
+      `}
+              <span className="warn">
+                ! Governance change being applied — may add/remove
+                        signers, lower threshold, or drop timelock
+              </span>
+              {`
+      `}
+              <span className="warn">
+                ! This is the class of instruction used in the
+                        April 2026 Drift exploit
+              </span>
+              {`
+
+   `}
+              <span className="danger">
+                [X] CRITICAL — this transaction matches the APRIL 2026
+                       DRIFT EXPLOIT PATTERN:
+                       durable nonce + multisig admin execute. the attacker
+                       that drained $285M from Drift used exactly this shape —
+                       pre-signed governance actions that stay valid indefinitely.
+                       DO NOT SIGN without verifying the inner instructions AND
+                       the nonce account lifecycle.
+              </span>
+              {`
+----------------------------------------------------------------
+ Instructions (2):
+  #0 System Program :: AdvanceNonceAccount      [`}
+              <span className="warn">MEDIUM</span>
+              {`]
+  #1 Squads v4      :: config_transaction_execute [`}
+              <span className="danger">CRITICAL</span>
+              {`]
+================================================================`}
+            </pre>
+          </div>
+        </section>
+
+        {/* ======================================================= DECODERS */}
+        <section id="decoders" aria-labelledby="dec-title">
+          <div className="container">
+            <div className="eyebrow">04 // decoder coverage</div>
+            <h2 id="dec-title" className="section-title">
+              eight programs.
+              <br />
+              eighty-plus <em>instructions.</em>
+            </h2>
+            <p className="section-lead">
+              every decoder lands in the same registry and emits the same{" "}
+              <span className="mono" style={{ color: "var(--fg)" }}>
+                LegibilityReport
+              </span>{" "}
+              shape. anchor programs go through a generic discriminator
+              matcher; native programs (system, spl token, token-2022) have
+              custom decoders.
+            </p>
+
+            <div className="grid">
+              {DECODERS.map((d) => (
+                <article className="card" key={d.name}>
+                  <div className="card-head">
+                    <h3>{d.name}</h3>
+                    <span className="count mono">{d.count}</span>
+                  </div>
+                  <ul>
+                    {d.items.map((i, idx) => (
+                      <li key={idx}>{i}</li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================== USE */}
+        <section id="usage" aria-labelledby="use-title">
+          <div className="container">
+            <div className="eyebrow">05 // usage</div>
+            <h2 id="use-title" className="section-title">
+              four commands.
+              <br />
+              zero trust required.
+            </h2>
+            <p className="section-lead" style={{ marginBottom: 40 }}>
+              the engine ships as a single rust crate + cli. no backend, no
+              telemetry, no keys ever leave your machine.
+            </p>
+
+            <pre className="term">
+              <div className="term-head">
+                <span className="dot red" />
+                <span className="dot yellow" />
+                <span className="dot green" />
+                <span className="title">install</span>
+              </div>
+              {`$ git clone https://github.com/Nulltx-xyz/crif
+$ cd crif
+$ cargo build --release`}
+            </pre>
+
+            <pre className="term">
+              <div className="term-head">
+                <span className="dot red" />
+                <span className="dot yellow" />
+                <span className="dot green" />
+                <span className="title">simulate against devnet</span>
+              </div>
+              {`$ cargo run -- simulate --tx $BASE64_TX --rpc devnet`}
+            </pre>
+
+            <pre className="term">
+              <div className="term-head">
+                <span className="dot red" />
+                <span className="dot yellow" />
+                <span className="dot green" />
+                <span className="title">offline mode — structure-only</span>
+              </div>
+              {`$ cargo run -- simulate --tx $BASE64_TX --offline --json`}
+            </pre>
+
+            <pre className="term">
+              <div className="term-head">
+                <span className="dot red" />
+                <span className="dot yellow" />
+                <span className="dot green" />
+                <span className="title">reproduce the drift 2026 attack</span>
+              </div>
+              {`$ cargo run --example drift_attack
+> overall_risk = Critical
+> uses_durable_nonce = true`}
+            </pre>
+          </div>
+        </section>
+
+        {/* ========================================================== STACK */}
+        <section aria-labelledby="stack-title">
+          <div className="container">
+            <div className="eyebrow">06 // stack</div>
+            <h2 id="stack-title" className="section-title">
+              not a wallet.
+              <br />
+              not a bridge. <em>a lens.</em>
+            </h2>
+            <p className="section-lead">
+              powered by solana-sdk 2.0, solana-client, spl-token, borsh,
+              bincode, clap, and tokio. deployed on devnet via
+              simulateTransaction. built with rust 1.94, zero runtime panics,
+              twenty-eight tests and counting. a read-only engine for one
+              specific job: showing you the ground truth of a transaction
+              before your signature commits to it.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      {/* ============================================================ FOOTER */}
+      <footer className="site">
+        <div className="container">
+          <div className="row">
+            <div className="brand">
+              <span className="mono">crif · v0.1.0</span>
+            </div>
+            <nav aria-label="footer">
+              <a href="https://github.com/Nulltx-xyz/crif" rel="noopener">
+                github
+              </a>
+              <a href="https://x.com/crif_fun" rel="noopener">
+                x
+              </a>
+              <a href="/docs">docs</a>
+              <a href="/api/health">health</a>
+              <a href="/.well-known/crif.json">.well-known</a>
+              <a href="/sitemap.xml">sitemap</a>
+              <a href="/robots.txt">robots</a>
+            </nav>
+          </div>
+          <div className="fine">
+            pre-deployment · mit license · 2026
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}
