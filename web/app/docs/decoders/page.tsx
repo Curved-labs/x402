@@ -109,3 +109,113 @@ const DECODERS: Decoder[] = [
     name: "Drift v2",
     programId: "dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH",
     kind: "anchor",
+    description:
+      "Drift Protocol — the program whose governance was hijacked in the April 2026 exploit. The user-facing instructions themselves are standard deposit / trade / liquidate flows.",
+    instructions: [
+      { name: "initialize_user / initialize_user_stats", risk: "low", desc: "Create the user account and stats under the signer." },
+      { name: "deposit / withdraw / transfer_deposit", risk: "medium", desc: "Move collateral in and out of Drift vaults." },
+      { name: "place_perp_order / place_spot_order / place_and_take_perp_order", risk: "medium", desc: "Open orders against perp or spot markets." },
+      { name: "cancel_order / cancel_orders / settle_pnl", risk: "low", desc: "Cancel orders, settle realized PnL." },
+      { name: "liquidate_perp / liquidate_spot / liquidate_borrow_for_perp_pnl", risk: "high", desc: "Third-party liquidations — verify target user and keeper." },
+      { name: "update_user_delegate", risk: "high", desc: "Set a delegate that can trade on the user account." },
+      { name: "update_user_name / update_amms", risk: "low", desc: "Cosmetic and oracle refresh instructions." },
+    ],
+  },
+  {
+    name: "Kamino Lend",
+    programId: "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
+    kind: "anchor",
+    description:
+      "Money market with obligation-based borrowing. Reserve and obligation operations are the user-facing surface.",
+    instructions: [
+      { name: "init_obligation / refresh_obligation / refresh_reserve", risk: "low", desc: "Bookkeeping and oracle refresh." },
+      { name: "deposit_reserve_liquidity / redeem_reserve_collateral", risk: "medium", desc: "Supply liquidity / redeem cTokens." },
+      { name: "deposit_obligation_collateral", risk: "medium", desc: "Post cTokens as obligation collateral." },
+      { name: "withdraw_obligation_collateral", risk: "high", desc: "Reduce obligation collateral — increases liquidation risk." },
+      { name: "borrow_obligation_liquidity", risk: "high", desc: "Open a new debt position against the obligation." },
+      { name: "repay_obligation_liquidity", risk: "low", desc: "Repay outstanding debt." },
+      { name: "liquidate_obligation_and_redeem_reserve_collateral", risk: "high", desc: "Third-party liquidation." },
+      { name: "flash_borrow_reserve_liquidity / flash_repay_reserve_liquidity", risk: "medium", desc: "Flash-borrow pair — must balance in the same tx." },
+    ],
+  },
+  {
+    name: "MarginFi v2",
+    programId: "MFv2hWf31Z9kbCa1snEPYctwafyJVi6rmTeBd8NsGRf",
+    kind: "anchor",
+    description:
+      "Isolated-margin money market. Each user holds a marginfi_account under a marginfi_group.",
+    instructions: [
+      { name: "marginfi_account_initialize", risk: "low", desc: "Create a new marginfi account under a group." },
+      { name: "lending_account_deposit / withdraw", risk: "medium", desc: "Supply / withdraw from a lending bank." },
+      { name: "lending_account_borrow", risk: "high", desc: "Open a new debt position." },
+      { name: "lending_account_repay", risk: "low", desc: "Repay debt." },
+      { name: "lending_account_liquidate", risk: "high", desc: "Liquidate an unhealthy marginfi account." },
+      { name: "lending_account_start_flashloan / end_flashloan", risk: "medium", desc: "Flashloan begin / end pair." },
+      { name: "marginfi_account_set_account_authority", risk: "critical", desc: "Transfer control of the marginfi account to a new authority. Full takeover." },
+    ],
+  },
+];
+
+export default function Page() {
+  return (
+    <article className="docs-content">
+      <DocHeader
+        href="/docs/decoders"
+        eyebrow="Reference"
+        title="Decoder coverage"
+        lead="Eight programs. 80+ instructions. Every decoder registers itself under its canonical program ID and emits the same DecodedInstruction shape. Unknown programs fall back to a MEDIUM verdict with a human-review reason."
+      />
+
+      <Callout tone="note">
+        Native programs (System, SPL Token, Token-2022) have custom decoders
+        that match on raw instruction tags. Anchor programs (Jupiter, Drift,
+        Kamino, MarginFi) go through{" "}
+        <code className="inline-code">GenericAnchorDecoder</code> with static
+        lookup tables. Squads v4 has a custom Anchor decoder because its
+        Drift-specific reasoning does not fit the plain table shape.
+      </Callout>
+
+      {DECODERS.map((d) => (
+        <section key={d.name}>
+          <h2 className="docs-h2">{d.name}</h2>
+          <p>
+            <strong>Program ID:</strong>{" "}
+            <code className="inline-code">{d.programId}</code>
+            <br />
+            <strong>Decoder kind:</strong> {d.kind}
+          </p>
+          <p>{d.description}</p>
+          {d.notes && (
+            <p>
+              <em style={{ color: "var(--accent)" }}>{d.notes}</em>
+            </p>
+          )}
+          <div className="prop-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>instruction</th>
+                  <th>default risk</th>
+                  <th>description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.instructions.map((ix) => (
+                  <tr key={ix.name}>
+                    <td className="mono">{ix.name}</td>
+                    <td>
+                      <RiskBadge level={ix.risk} />
+                    </td>
+                    <td>{ix.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+
+      <DocPager href="/docs/decoders" />
+    </article>
+  );
+}
