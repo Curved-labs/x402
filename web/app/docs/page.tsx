@@ -77,3 +77,81 @@ export default function DocsOverview() {
         attacks. Every verdict is derived from the actual program IDs,
         instruction discriminators, and account layouts present in the tx.
       </p>
+      <p>
+        <strong>Fail loud, fail honest.</strong> Unknown programs receive a{" "}
+        <code className="inline-code">MEDIUM</code> fallback with a{" "}
+        &quot;requires human review&quot; reason. Unknown Anchor
+        discriminators receive the same. The engine never silently approves
+        something it does not understand.
+      </p>
+
+      <h2 className="docs-h2">Start here</h2>
+      <div className="docs-grid">
+        <Link href="/docs/getting-started" className="docs-card">
+          <div className="card-label">01 · start</div>
+          <div className="card-title">Quickstart</div>
+          <div className="card-desc">
+            Install, verify the test suite, and simulate a transaction in
+            under two minutes.
+          </div>
+        </Link>
+        <Link href="/docs/architecture" className="docs-card">
+          <div className="card-label">02 · arch</div>
+          <div className="card-title">Architecture</div>
+          <div className="card-desc">
+            How the orchestrator wires RPC fetch → simulate → diff → decode →
+            classify.
+          </div>
+        </Link>
+        <Link href="/docs/cli" className="docs-card">
+          <div className="card-label">03 · cli</div>
+          <div className="card-title">CLI reference</div>
+          <div className="card-desc">
+            Every subcommand, every flag, every output mode.
+          </div>
+        </Link>
+        <Link href="/docs/api-reference" className="docs-card">
+          <div className="card-label">04 · api</div>
+          <div className="card-title">LegibilityReport shape</div>
+          <div className="card-desc">
+            Field-by-field specification of the JSON emission.
+          </div>
+        </Link>
+        <Link href="/docs/risk-model" className="docs-card">
+          <div className="card-label">05 · risk</div>
+          <div className="card-title">Risk model</div>
+          <div className="card-desc">
+            The four levels, the escalation rules, and the Drift combo
+            detector.
+          </div>
+        </Link>
+        <Link href="/docs/decoders" className="docs-card">
+          <div className="card-label">06 · cov</div>
+          <div className="card-title">Decoder coverage</div>
+          <div className="card-desc">
+            All 8 programs and 80+ instructions, with per-instruction risk
+            defaults.
+          </div>
+        </Link>
+        <Link href="/docs/drift-2026" className="docs-card">
+          <div className="card-label">07 · sec</div>
+          <div className="card-title">Drift 2026 post-mortem</div>
+          <div className="card-desc">
+            The timeline, the technical root cause, and how this engine would
+            have caught it.
+          </div>
+        </Link>
+        <Link href="/docs/integrate" className="docs-card">
+          <div className="card-label">08 · lib</div>
+          <div className="card-title">Rust library usage</div>
+          <div className="card-desc">
+            Integrate the engine into your own signing flow as a crate, not a
+            subprocess.
+          </div>
+        </Link>
+      </div>
+
+      <DocPager href="/docs" />
+    </article>
+  );
+}

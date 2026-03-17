@@ -80,3 +80,85 @@ running tests:
 
 total ................... 28 passed, 0 failed`}
       </pre>
+
+      <p>
+        The devnet integration test is marked{" "}
+        <code className="inline-code">#[ignore]</code> by default so that{" "}
+        <code className="inline-code">cargo test</code> stays offline. To
+        include it, run:
+      </p>
+
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">devnet integration</span>
+        </div>
+        {`$ cargo test --test devnet_integration -- --ignored --nocapture`}
+      </pre>
+
+      <p>
+        This test loads{" "}
+        <code className="inline-code">~/.config/solana/id.json</code>, fetches
+        its devnet balance, builds a real SOL transfer transaction, feeds it
+        through <code className="inline-code">build_report</code>, and asserts
+        the engine produces a coherent diff. If the keypair has less than{" "}
+        0.01 SOL on devnet, the test skips.
+      </p>
+
+      <h2 className="docs-h2">3. Simulate a transaction</h2>
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">sle simulate</span>
+        </div>
+        {`$ cargo run --release -- simulate \\
+    --tx "$BASE64_TX" \\
+    --rpc devnet`}
+      </pre>
+
+      <p>
+        Replace <code className="inline-code">$BASE64_TX</code> with a
+        base64-encoded <code className="inline-code">VersionedTransaction</code>.
+        The engine will fetch the writable-account pre-state from devnet,
+        call simulateTransaction, diff the result, decode every instruction,
+        and print a human-readable report.
+      </p>
+
+      <h2 className="docs-h2">4. Reproduce the Drift 2026 attack</h2>
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">drift attack reproduction</span>
+        </div>
+        {`$ cargo run --example drift_attack
+
+> overall_risk        = Critical
+> uses_durable_nonce  = true`}
+      </pre>
+
+      <p>
+        This example synthesizes a transaction whose shape matches the April
+        2026 Drift exploit (AdvanceNonceAccount followed by{" "}
+        <code className="inline-code">Squads.config_transaction_execute</code>),
+        serializes it to base64, and runs it through the offline report
+        pipeline. The verdict is{" "}
+        <strong style={{ color: "var(--danger)" }}>CRITICAL</strong>.
+      </p>
+
+      <Callout tone="ok" title="You are done">
+        The engine is installed, tested, and verified. Head to{" "}
+        <a href="/docs/cli">CLI reference</a> for every flag, or to{" "}
+        <a href="/docs/drift-2026">Drift 2026 post-mortem</a> for the full
+        attack analysis.
+      </Callout>
+
+      <DocPager href="/docs/getting-started" />
+    </article>
+  );
+}

@@ -122,3 +122,126 @@ export default function Page() {
         <code className="inline-code">src/report.rs</code>:
       </p>
 
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">report.rs (excerpt)</span>
+        </div>
+        {`/// Full report: runs simulation against live RPC, diffs state,
+/// decodes, classifies.
+pub async fn build_report(
+    cfg: &EngineConfig,
+    tx: &VersionedTransaction,
+) -> Result<LegibilityReport>;
+
+/// Offline report: skips simulation entirely. Runs the decoder
+/// and classifier against the transaction's static structure only.
+/// Useful for auditing a tx before it touches any RPC, and for
+/// programs that may not be deployed on the current cluster.
+pub fn build_report_offline(
+    tx: &VersionedTransaction,
+) -> LegibilityReport;`}
+      </pre>
+
+      <p>
+        Both functions converge on a private{" "}
+        <code className="inline-code">assemble_report</code> helper that runs
+        decode + classify identically. The only difference is where the state
+        diffs and token transfers come from: the full path extracts them from
+        the simulation outcome, the offline path passes empty vectors.
+      </p>
+
+      <h2 className="docs-h2">The decoder registry</h2>
+      <p>
+        A <code className="inline-code">DecoderRegistry</code> is a{" "}
+        <code className="inline-code">HashMap&lt;Pubkey, Arc&lt;dyn ProgramDecoder&gt;&gt;</code>.
+        Each protocol decoder implements a three-method trait:
+      </p>
+
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">ProgramDecoder trait</span>
+        </div>
+        {`pub trait ProgramDecoder: Send + Sync {
+    fn program_id(&self) -> Pubkey;
+    fn program_name(&self) -> &'static str;
+    fn decode(
+        &self,
+        ix: &CompiledInstruction,
+        account_keys: &[Pubkey],
+    ) -> Option<DecodedInstruction>;
+}`}
+      </pre>
+
+      <p>
+        Native programs (System, SPL Token, Token-2022) have bespoke decoders
+        that match on the raw instruction tag byte. Anchor programs (Squads,
+        Jupiter, Drift v2, Kamino, MarginFi) go through{" "}
+        <code className="inline-code">GenericAnchorDecoder</code>, which takes
+        a static table of <code className="inline-code">(instruction_name, display_name, summary, risk, reasons)</code>{" "}
+        tuples and computes Anchor&apos;s{" "}
+        <code className="inline-code">sha256(&quot;global:&lt;name&gt;&quot;)[0..8]</code>{" "}
+        discriminators at first call, caching them in a{" "}
+        <code className="inline-code">OnceLock</code>.
+      </p>
+
+      <Callout tone="note" title="Why a generic Anchor decoder?">
+        Five of the eight programs are Anchor-based and share the same
+        discriminator layout. Rather than duplicate the match-on-first-8-bytes
+        logic five times, a single helper takes a program id + a static table
+        and returns a <code className="inline-code">ProgramDecoder</code>. The
+        protocol modules are data, not logic. Adding a new Anchor program
+        requires only a new{" "}
+        <code className="inline-code">&lt;program&gt;.rs</code> file with a
+        table and a one-line registration in{" "}
+        <code className="inline-code">registry.rs</code>.
+      </Callout>
+
+      <h2 className="docs-h2">The classifier</h2>
+      <p>
+        The classifier takes decoded instructions, state diffs, token
+        transfers, and a durable-nonce flag, and returns{" "}
+        <code className="inline-code">(RiskLevel, Vec&lt;String&gt;)</code>{" "}
+        — the overall verdict and the human summary lines. It applies four
+        kinds of rules in order:
+      </p>
+
+      <ol>
+        <li>
+          Per-instruction escalation — the overall risk is the maximum of
+          every decoded instruction&apos;s risk.
+        </li>
+        <li>
+          Durable nonce escalation — if the first instruction is{" "}
+          <code className="inline-code">AdvanceNonceAccount</code>, the risk
+          is bumped to at least HIGH.
+        </li>
+        <li>
+          Drift pattern detection — if the tx uses a durable nonce AND
+          contains any of{" "}
+          <code className="inline-code">config_transaction_execute</code>,{" "}
+          <code className="inline-code">multisig_set_config</code>, or{" "}
+          <code className="inline-code">vault_transaction_execute</code>, the
+          risk is forced to CRITICAL with a dedicated Drift 2026 callout.
+        </li>
+        <li>
+          State diff escalation — large lamport outflows (≥1 SOL) and owner
+          program changes escalate the overall risk.
+        </li>
+      </ol>
+
+      <p>
+        All rules are pure functions of their inputs. The classifier has no
+        state, no configuration, and no external dependencies. Its full source
+        is about 100 lines.
+      </p>
+
+      <DocPager href="/docs/architecture" />
+    </article>
+  );
+}

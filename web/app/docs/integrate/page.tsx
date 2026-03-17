@@ -108,3 +108,112 @@ fn review_before_sign(tx: &VersionedTransaction) -> bool {
     report::build_report,
     types::{LegibilityReport, RiskLevel},
 };
+use solana_sdk::transaction::VersionedTransaction;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let cfg = EngineConfig::devnet();
+    // Or: EngineConfig::mainnet_beta()
+    // Or: EngineConfig { rpc_url: "https://...helius-rpc.com/?...".into(),
+    //                    commitment: CommitmentConfig::confirmed(),
+    //                    replace_blockhash: true }
+
+    let tx: VersionedTransaction = /* your tx */;
+    let report: LegibilityReport = build_report(&cfg, &tx).await?;
+
+    // Render, audit, gate — whatever your flow needs.
+    println!("{}", serde_json::to_string_pretty(&report)?);
+    Ok(())
+}`}
+      </pre>
+
+      <h2 className="docs-h2">Inspect specific fields</h2>
+      <p>
+        The <code className="inline-code">LegibilityReport</code> type
+        derives <code className="inline-code">serde::Serialize</code> and{" "}
+        <code className="inline-code">serde::Deserialize</code>, so you can
+        destructure it freely or round-trip it through JSON.
+      </p>
+
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">inspection</span>
+        </div>
+        {`if report.uses_durable_nonce {
+    // This transaction will not expire — treat the signature
+    // as a long-lived standing order.
+}
+
+for ix in &report.instructions {
+    println!("{}.{} ({:?})",
+        ix.program_name, ix.instruction_name, ix.risk);
+    for reason in &ix.risk_reasons {
+        println!("  reason: {}", reason);
+    }
+}
+
+for diff in &report.account_diffs {
+    if diff.owner_before != diff.owner_after {
+        // Owner change: the classifier will have escalated
+        // overall_risk to Critical already.
+    }
+}`}
+      </pre>
+
+      <h2 className="docs-h2">CI gate pattern</h2>
+      <p>
+        The most common integration outside a wallet is a CI-time gate that
+        refuses to merge pull requests proposing governance transactions
+        that would trip the Drift pattern. A minimal version:
+      </p>
+
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">gate.rs</span>
+        </div>
+        {`use crif::{
+    report::build_report_offline, types::RiskLevel,
+};
+use std::process::ExitCode;
+
+fn main() -> ExitCode {
+    let Some(tx_b64) = std::env::args().nth(1) else {
+        eprintln!("usage: gate <BASE64_TX>");
+        return ExitCode::from(2);
+    };
+    let raw = base64::engine::general_purpose::STANDARD
+        .decode(tx_b64.as_bytes())
+        .expect("base64 decode");
+    let tx = bincode::deserialize(&raw).expect("bincode decode");
+    let report = build_report_offline(&tx);
+
+    match report.overall_risk {
+        RiskLevel::Critical => {
+            eprintln!("BLOCKED: {:?}", report.overall_risk);
+            for line in &report.human_summary {
+                eprintln!("  {}", line);
+            }
+            ExitCode::from(1)
+        }
+        _ => ExitCode::from(0),
+    }
+}`}
+      </pre>
+
+      <Callout tone="ok" title="What's next">
+        See the <a href="/docs/api-reference">LegibilityReport reference</a>{" "}
+        for the full type specification, or the{" "}
+        <a href="/docs/risk-model">risk model</a> for the exact escalation
+        rules the classifier applies before returning a verdict.
+      </Callout>
+
+      <DocPager href="/docs/integrate" />
+    </article>
+  );
+}

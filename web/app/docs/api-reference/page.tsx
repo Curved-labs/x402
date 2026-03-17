@@ -127,3 +127,131 @@ export default function Page() {
           },
           {
             name: "summary",
+            type: "string",
+            desc: "A one-sentence description of the instruction's effect, templated with account pubkeys where the decoder can resolve them.",
+          },
+          {
+            name: "accounts",
+            type: "string[]",
+            desc: "The base58 pubkeys of every account referenced by this instruction's accounts index list, in order.",
+          },
+          {
+            name: "risk",
+            type: "RiskLevel",
+            desc: "The per-instruction risk level. The classifier takes the max of every instruction's risk as the starting point for the overall verdict.",
+          },
+          {
+            name: "risk_reasons",
+            type: "string[]",
+            desc: "Human-readable reasons the decoder attached to this risk level. May be empty for LOW-risk instructions.",
+          },
+        ]}
+      />
+
+      <h2 className="docs-h2">AccountDiff</h2>
+      <PropTable
+        rows={[
+          {
+            name: "address",
+            type: "string",
+            desc: "Base58 pubkey of the account that changed.",
+          },
+          {
+            name: "owner_before",
+            type: "string | null",
+            desc: "Owning program of the account before the simulation.",
+          },
+          {
+            name: "owner_after",
+            type: "string | null",
+            desc: "Owning program after the simulation. A change here is escalated to CRITICAL by the classifier.",
+          },
+          {
+            name: "lamports_before",
+            type: "number",
+            desc: "Lamport balance before the simulation.",
+          },
+          {
+            name: "lamports_after",
+            type: "number",
+            desc: "Lamport balance after the simulation.",
+          },
+          {
+            name: "lamports_delta",
+            type: "number",
+            desc: "Signed delta (lamports_after - lamports_before). Large negative deltas escalate the overall verdict.",
+          },
+          {
+            name: "data_changed",
+            type: "boolean",
+            desc: "Whether any byte of the account's data region changed.",
+          },
+          {
+            name: "data_len_before",
+            type: "number",
+            desc: "Length of the data region before the simulation.",
+          },
+          {
+            name: "data_len_after",
+            type: "number",
+            desc: "Length of the data region after the simulation.",
+          },
+        ]}
+      />
+
+      <h2 className="docs-h2">TokenTransfer</h2>
+      <PropTable
+        rows={[
+          {
+            name: "mint",
+            type: "string",
+            desc: "Base58 pubkey of the mint the transfer belongs to.",
+          },
+          {
+            name: "from",
+            type: "string",
+            desc: "Source token account, or '?' if the source could not be determined from the diff alone.",
+          },
+          {
+            name: "to",
+            type: "string",
+            desc: "Destination token account, or '?' if not determinable.",
+          },
+          {
+            name: "ui_amount",
+            type: "number",
+            desc: "Raw amount as a floating-point value. Decimals are not yet applied — multiply client-side.",
+          },
+          {
+            name: "raw_amount",
+            type: "number",
+            desc: "Raw amount in the mint's base units.",
+          },
+          {
+            name: "decimals",
+            type: "number",
+            desc: "Mint decimals. Always zero in v0.1.0 — fetch from the mint account client-side if you need proper UI formatting.",
+          },
+        ]}
+      />
+
+      <h2 className="docs-h2">RiskLevel</h2>
+      <p>
+        A four-variant enum serialized as one of the following exact strings:
+      </p>
+      <pre className="term">
+        {`"Low" | "Medium" | "High" | "Critical"`}
+      </pre>
+
+      <Callout tone="note">
+        The JSON shape is versioned by the crate&apos;s <code className="inline-code">Cargo.toml</code>{" "}
+        version. Patch releases (<code className="inline-code">0.1.x</code>)
+        never add or remove fields; they only fill existing fields with
+        better data. Minor releases (<code className="inline-code">0.y.0</code>)
+        may add new fields but will never rename or remove existing ones.
+      </Callout>
+
+      <DocPager href="/docs/api-reference" />
+    </article>
+  );
+}

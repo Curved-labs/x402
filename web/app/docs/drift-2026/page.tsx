@@ -177,3 +177,181 @@ export default function Page() {
         signatures exist, the only way to invalidate them is to advance the
         nonce account out-of-band — an operation that the average signer
         does not monitor or even know about.
+      </p>
+
+      <h3 className="docs-h3">2. Squads governance opacity</h3>
+      <p>
+        Squads multisigs queue administrative actions as separate
+        transaction accounts; a council member signing a{" "}
+        <code className="inline-code">config_transaction_execute</code>{" "}
+        action is approving the execution of whatever is currently stored
+        in that transaction account. The signing flow typically does not
+        decode the inner instructions for the signer — it shows them a
+        reference and a hash. At Drift&apos;s configuration (a 2-of-5
+        threshold with zero timelock), two approvals were enough to trigger
+        execution with no grace period.
+      </p>
+
+      <h3 className="docs-h3">3. Social engineering as the lever</h3>
+      <p>
+        None of the above is unusual on its own. What closed the loop was
+        six months of relationship-building that made the pre-signing
+        request look like an ordinary business operation. The signers had no
+        reason to assume malice, and they had no tool that would have shown
+        them otherwise.
+      </p>
+
+      <Callout tone="note" title="What would have stopped it">
+        Any one of:
+        <br />
+        <br />
+        1. A transaction legibility layer that decoded the
+        config_transaction_execute payload and surfaced it as &quot;admin
+        authority transfer to &lt;new attacker address&gt;&quot; at
+        signing time.
+        <br />
+        2. A mandatory multi-day timelock on config execution, giving the
+        council time to notice the pre-signed transaction.
+        <br />
+        3. A refusal to accept durable-nonce signatures for
+        governance-class instructions at all.
+        <br />
+        <br />
+        <strong>This engine implements #1.</strong>
+      </Callout>
+
+      <h2 className="docs-h2">How the engine catches it</h2>
+      <p>
+        Given the same transaction the attacker used on April 1,
+        crif applies the following chain of reasoning,
+        fully offline:
+      </p>
+
+      <ol>
+        <li>
+          The decoder sees the first instruction has{" "}
+          <code className="inline-code">program_id == System</code> and the
+          4-byte tag <code className="inline-code">0x04</code>. It matches
+          that as <code className="inline-code">AdvanceNonceAccount</code>{" "}
+          and flags the transaction as using a durable nonce.
+        </li>
+        <li>
+          The decoder sees the second instruction has{" "}
+          <code className="inline-code">program_id == SQDS4ep65T869...</code>{" "}
+          and an 8-byte Anchor discriminator. It computes{" "}
+          <code className="inline-code">
+            sha256(&quot;global:config_transaction_execute&quot;)[0..8]
+          </code>{" "}
+          and matches. The decoder returns a{" "}
+          <code className="inline-code">DecodedInstruction</code> with{" "}
+          <code className="inline-code">risk = Critical</code> and the
+          reason line{" "}
+          <em>
+            &quot;This is the class of instruction used in the April 2026
+            Drift exploit.&quot;
+          </em>
+        </li>
+        <li>
+          The classifier starts at LOW, takes the max per-instruction risk
+          (CRITICAL from the Squads execute), then sees{" "}
+          <code className="inline-code">uses_durable_nonce == true</code>.
+        </li>
+        <li>
+          The classifier checks the Drift pattern rule:{" "}
+          <code className="inline-code">uses_durable_nonce</code> AND any
+          instruction name in the set{" "}
+          <code className="inline-code">
+            &#123;config_transaction_execute, multisig_set_config,
+            vault_transaction_execute&#125;
+          </code>
+          . Both conditions are true.
+        </li>
+        <li>
+          The classifier forces the verdict to{" "}
+          <code className="inline-code">Critical</code> and prepends the
+          multi-line Drift 2026 callout to the human summary.
+        </li>
+        <li>
+          The CLI prints the verdict in red. The signing UI, if wired up to
+          the engine, surfaces the full pattern explanation before the user
+          confirms.
+        </li>
+      </ol>
+
+      <h2 className="docs-h2">Reproducing the result</h2>
+      <p>
+        The repo ships an example that synthesizes a transaction with the
+        exact shape of the Drift exploit and prints both the base64
+        serialization and the offline legibility report:
+      </p>
+
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">drift attack reproduction</span>
+        </div>
+        {`$ cargo run --example drift_attack
+
+signer (council member): 4kfEfEk7HrCLpdqo3vtrMYYF9ehzCAm7i4wZeK5f6syi
+multisig PDA (fake):     1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM
+instructions: AdvanceNonceAccount, Squads.config_transaction_execute
+
+BASE64: AbViYw9Axfz+LuKZ9pxLcFzfCRS8rasl633GI...
+
+overall_risk       = Critical
+uses_durable_nonce = true`}
+      </pre>
+
+      <p>
+        You can also feed the emitted base64 straight through the CLI to
+        confirm the pipeline end-to-end:
+      </p>
+
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">cli roundtrip</span>
+        </div>
+        {`$ sle simulate --offline --tx "$BASE64"
+...
+ Overall risk: CRITICAL
+ ! DURABLE NONCE: yes - this transaction has no expiry
+ [X] CRITICAL — this transaction matches the APRIL 2026
+     DRIFT EXPLOIT PATTERN: ...`}
+      </pre>
+
+      <h2 className="docs-h2">Sources</h2>
+      <ul>
+        <li>
+          CoinDesk — &quot;How a Solana feature designed for convenience let
+          an attacker drain $270 million from Drift&quot; (April 2, 2026)
+        </li>
+        <li>
+          BlockSec — &quot;Drift Protocol Incident: Multisig Governance
+          Compromise via Durable Nonce Exploitation&quot;
+        </li>
+        <li>
+          Cyfrin — &quot;Drift Protocol&apos;s $285M Hack: Why Transaction
+          Legibility Is the Fix&quot;
+        </li>
+        <li>
+          Chainalysis — &quot;Drift Protocol Hack: How Privileged Access Led
+          to a $285M Loss&quot;
+        </li>
+        <li>
+          TRM Labs — &quot;North Korean Hackers Attack Drift Protocol in
+          $285 Million Heist&quot;
+        </li>
+        <li>
+          The Block — &quot;Drift says $280M exploit tied to &apos;sophisticated&apos; admin takeover; ZachXBT criticizes Circle over USDC handling&quot;
+        </li>
+      </ul>
+
+      <DocPager href="/docs/drift-2026" />
+    </article>
+  );
+}

@@ -97,3 +97,101 @@ OPTIONS:
         </div>
         {`$ sle simulate --tx "$BASE64_TX" --rpc devnet`}
       </pre>
+
+      <h3 className="docs-h3">Simulate against mainnet-beta</h3>
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">mainnet · human output</span>
+        </div>
+        {`$ sle simulate --tx "$BASE64_TX" --rpc mainnet`}
+      </pre>
+
+      <Callout tone="warn" title="Public mainnet-beta rate limiting">
+        The public{" "}
+        <code className="inline-code">api.mainnet-beta.solana.com</code>{" "}
+        endpoint is aggressively rate-limited. For sustained use, point the
+        engine at a premium RPC by passing its URL directly to{" "}
+        <code className="inline-code">--rpc</code>:
+        <br />
+        <br />
+        <code className="inline-code">--rpc https://YOUR.helius-rpc.com/?api-key=...</code>
+      </Callout>
+
+      <h3 className="docs-h3">Offline — no network, structure-only</h3>
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">offline · human output</span>
+        </div>
+        {`$ sle simulate --tx "$BASE64_TX" --offline`}
+      </pre>
+
+      <h3 className="docs-h3">Offline + JSON — pipeline mode</h3>
+      <pre className="term">
+        <div className="term-head">
+          <span className="dot red" />
+          <span className="dot yellow" />
+          <span className="dot green" />
+          <span className="title">offline · json · jq</span>
+        </div>
+        {`$ sle simulate --tx "$BASE64_TX" --offline --json | jq '.overall_risk'
+"Critical"
+
+$ sle simulate --tx "$BASE64_TX" --offline --json \\
+    | jq '.instructions[] | {program: .program_name, risk: .risk}'`}
+      </pre>
+
+      <h2 className="docs-h2">Exit codes</h2>
+      <div className="prop-table">
+        <table>
+          <thead>
+            <tr>
+              <th>code</th>
+              <th>meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="mono">0</td>
+              <td>
+                Report built successfully. The report may still contain a
+                CRITICAL verdict — the exit code reflects only whether the
+                pipeline itself succeeded.
+              </td>
+            </tr>
+            <tr>
+              <td className="mono">1</td>
+              <td>
+                Runtime error: base64 decode failure, bincode deserialize
+                failure, or RPC error in non-offline mode.
+              </td>
+            </tr>
+            <tr>
+              <td className="mono">2</td>
+              <td>
+                Argument parsing error (missing <code className="inline-code">--tx</code>,
+                invalid flag combination, etc.). Emitted by clap.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <Callout tone="note">
+        If you want the CLI to exit non-zero on CRITICAL verdicts for use in
+        CI gates, wrap it in{" "}
+        <code className="inline-code">--json</code> + jq:{" "}
+        <code className="inline-code">
+          {`test "$(sle simulate --offline --json --tx $TX | jq -r .overall_risk)" != "Critical"`}
+        </code>
+      </Callout>
+
+      <DocPager href="/docs/cli" />
+    </article>
+  );
+}
