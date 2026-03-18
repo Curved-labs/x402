@@ -65,3 +65,70 @@ export function Callout({
   children,
 }: {
   tone?: "note" | "warn" | "critical" | "ok";
+  title?: string;
+  children: ReactNode;
+}) {
+  return (
+    <aside className={`callout callout-${tone}`} role="note">
+      <div className="callout-head">
+        <span className="callout-dot" aria-hidden="true" />
+        <span>{title ?? defaultTitle(tone)}</span>
+      </div>
+      <div className="callout-body">{children}</div>
+    </aside>
+  );
+}
+
+function defaultTitle(tone: string) {
+  switch (tone) {
+    case "warn":
+      return "Warning";
+    case "critical":
+      return "Critical";
+    case "ok":
+      return "Note";
+    default:
+      return "Note";
+  }
+}
+
+export function PropTable({
+  rows,
+}: {
+  rows: { name: string; type: string; desc: string }[];
+}) {
+  return (
+    <div className="prop-table">
+      <table>
+        <thead>
+          <tr>
+            <th>field</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.name}>
+              <td className="mono">{r.name}</td>
+              <td className="mono dim">{r.type}</td>
+              <td>{r.desc}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function RiskBadge({
+  level,
+}: {
+  level: "low" | "medium" | "high" | "critical";
+}) {
+  return <span className={`risk-badge risk-${level}`}>{level}</span>;
+}
+
+export function InlineCode({ children }: { children: ReactNode }) {
+  return <code className="inline-code">{children}</code>;
+}

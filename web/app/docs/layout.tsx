@@ -47,3 +47,52 @@ export default function DocsLayout({
             <div className="docs-sidebar-badge">
               <span className="dot" />
               <span>docs · v0.1.0</span>
+            </div>
+            {DOCS_NAV.map((group) => (
+              <div className="docs-nav-group" key={group.title}>
+                <div className="docs-nav-group-title">{group.title}</div>
+                <ul>
+                  {group.items.map((item) => (
+                    <li key={item.href}>
+                      <Link href={item.href}>{item.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <div className="docs-sidebar-fine">
+              pre-deployment · mit · 2026
+            </div>
+          </div>
+        </aside>
+
+        <main className="docs-main" id="content">
+          {children}
+        </main>
+      </div>
+
+      <footer className="site">
+        <div className="container">
+          <div className="row">
+            <div className="brand">
+              <span className="mono">crif · docs</span>
+            </div>
+            <nav aria-label="footer">
+              <Link href="/">home</Link>
+              <a
+                href="https://github.com/Nulltx-xyz/crif"
+                rel="noopener"
+              >
+                github
+              </a>
+              <Link href="/api/health">health</Link>
+              <Link href="/.well-known/crif.json">
+                .well-known
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}
