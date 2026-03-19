@@ -730,3 +730,335 @@ footer.site .brand {
 }
 
 footer.site nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+}
+
+footer.site nav a {
+  color: var(--fg-muted);
+}
+
+footer.site nav a:hover {
+  color: var(--accent);
+}
+
+footer.site .fine {
+  margin-top: 24px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: var(--fg-muted);
+  letter-spacing: -0.01em;
+}
+
+/* ---- Helpers ------------------------------------------------------------ */
+.fade-in {
+  animation: fadeUp 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Scrollbar ---------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-muted);
+}
+
+/* ========================================================================= */
+/*                              DOCS SHELL                                    */
+/* ========================================================================= */
+
+.docs-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 112px 24px 80px;
+  gap: 32px;
+}
+
+@media (min-width: 900px) {
+  .docs-shell {
+    grid-template-columns: 260px minmax(0, 1fr);
+    padding: 120px 40px 120px;
+    gap: 64px;
+  }
+}
+
+/* ---- Sidebar ----------------------------------------------------------- */
+.docs-sidebar {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .docs-sidebar {
+    display: block;
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    max-height: calc(100vh - 112px);
+    overflow-y: auto;
+    padding-right: 16px;
+  }
+}
+
+.docs-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.docs-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.docs-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.docs-sidebar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: var(--fg-dim);
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.docs-sidebar-badge .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.docs-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.docs-nav-group-title {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 0 10px;
+  margin-bottom: 4px;
+}
+
+.docs-nav-group ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.docs-nav-group li a {
+  display: block;
+  padding: 7px 10px;
+  font-size: 14px;
+  color: var(--fg-dim);
+  border-left: 1px solid var(--border);
+  margin-left: 0;
+  transition: all 160ms ease;
+  letter-spacing: -0.01em;
+}
+
+.docs-nav-group li a:hover {
+  color: var(--fg);
+  border-left-color: var(--fg-muted);
+}
+
+.docs-sidebar-fine {
+  margin-top: 16px;
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  color: var(--fg-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Main content ------------------------------------------------------ */
+.docs-main {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.docs-breadcrumb {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  color: var(--fg-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.docs-breadcrumb a {
+  color: var(--fg-muted);
+}
+
+.docs-breadcrumb a:hover {
+  color: var(--accent);
+}
+
+.docs-breadcrumb .sep {
+  color: var(--border-strong);
+}
+
+.docs-eyebrow {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.docs-h1 {
+  font-size: clamp(38px, 4.2vw, 54px);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--fg);
+  margin: 0 0 24px;
+  font-weight: 500;
+}
+
+.docs-h2 {
+  font-size: clamp(24px, 2.4vw, 30px);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--fg);
+  margin: 72px 0 20px;
+  font-weight: 500;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.docs-h3 {
+  font-size: 19px;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+  margin: 40px 0 16px;
+  font-weight: 500;
+}
+
+.docs-lead {
+  font-size: 19px;
+  color: var(--fg-dim);
+  line-height: 1.6;
+  margin: 0 0 48px;
+  max-width: 62ch;
+}
+
+.docs-main p {
+  font-size: 15.5px;
+  line-height: 1.78;
+  color: var(--fg-dim);
+  margin: 0 0 20px;
+  max-width: 68ch;
+}
+
+.docs-main p strong,
+.docs-main strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.docs-main a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(251, 146, 60, 0.35);
+  text-underline-offset: 3px;
+}
+
+.docs-main a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.docs-main ul,
+.docs-main ol {
+  font-size: 15.5px;
+  color: var(--fg-dim);
+  line-height: 1.8;
+  padding-left: 24px;
+  margin: 0 0 24px;
+  max-width: 68ch;
+}
+
+.docs-main ul li::marker {
+  color: var(--fg-muted);
+}
+
+.docs-main ol li::marker {
+  color: var(--fg-muted);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 13px;
+}
+
+.docs-main .term {
+  max-width: 780px;
+  margin: 28px 0;
+}
+
+/* ---- Inline code ------------------------------------------------------- */
+.inline-code,
+.docs-main code {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.88em;
+  padding: 2px 6px;
+  background: #13131a;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+}
+
+/* ---- Callouts ---------------------------------------------------------- */
+.callout {
