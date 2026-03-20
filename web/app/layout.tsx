@@ -108,3 +108,113 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
 };
+
+// -- JSON-LD structured data (Organization + SoftwareApplication + WebSite) ---
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon`,
+  description: DESCRIPTION,
+  sameAs: [
+    "https://github.com/Nulltx-xyz/crif",
+    "https://x.com/crif_fun",
+  ],
+};
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: SITE_NAME,
+  applicationCategory: "SecurityApplication",
+  applicationSubCategory: "BlockchainSecurity",
+  operatingSystem: "Linux, macOS, Windows",
+  description: DESCRIPTION,
+  url: SITE_URL,
+  softwareVersion: "0.1.0",
+  downloadUrl: "https://github.com/Nulltx-xyz/crif",
+  codeRepository: "https://github.com/Nulltx-xyz/crif",
+  programmingLanguage: ["Rust", "TypeScript"],
+  license: "https://opensource.org/licenses/MIT",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  author: {
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  keywords:
+    "solana, transaction simulation, transaction legibility, defi security, drift exploit, durable nonce, squads multisig, anchor",
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: DESCRIPTION,
+  inLanguage: "en-US",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/docs?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html
+      lang="en"
+      className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="preconnect" href="https://prod.spline.design" />
+        <link rel="dns-prefetch" href="https://prod.spline.design" />
+        <link rel="dns-prefetch" href="https://api.devnet.solana.com" />
+        <link rel="dns-prefetch" href="https://api.mainnet-beta.solana.com" />
+        <link rel="dns-prefetch" href="https://github.com" />
+        <meta name="theme-color" content="#070709" />
+        <meta name="color-scheme" content="dark" />
+      </head>
+      <body suppressHydrationWarning>
+        {children}
+        <Script
+          id="ld-json-organization"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+        <Script
+          id="ld-json-software"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
+        />
+        <Script
+          id="ld-json-website"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+      </body>
+    </html>
+  );
+}
