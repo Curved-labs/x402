@@ -1062,3 +1062,269 @@ button:focus-visible {
 
 /* ---- Callouts ---------------------------------------------------------- */
 .callout {
+  margin: 28px 0;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--fg-muted);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  max-width: 780px;
+}
+
+.callout.callout-note {
+  border-left-color: var(--violet);
+}
+
+.callout.callout-warn {
+  border-left-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.04);
+}
+
+.callout.callout-critical {
+  border-left-color: var(--danger);
+  background: rgba(248, 113, 113, 0.05);
+}
+
+.callout.callout-ok {
+  border-left-color: var(--success);
+}
+
+.callout-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  color: var(--fg);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.callout-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fg-muted);
+}
+
+.callout.callout-note .callout-dot {
+  background: var(--violet);
+}
+.callout.callout-warn .callout-dot {
+  background: #fbbf24;
+}
+.callout.callout-critical .callout-dot {
+  background: var(--danger);
+}
+.callout.callout-ok .callout-dot {
+  background: var(--success);
+}
+
+.callout-body {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--fg-dim);
+}
+
+.callout-body :first-child {
+  margin-top: 0;
+}
+.callout-body :last-child {
+  margin-bottom: 0;
+}
+
+.callout-body strong {
+  color: var(--fg);
+}
+
+/* ---- Property / reference tables --------------------------------------- */
+.prop-table {
+  margin: 28px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 880px;
+}
+
+.prop-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prop-table th,
+.prop-table td {
+  padding: 14px 18px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.prop-table tr:last-child th,
+.prop-table tr:last-child td {
+  border-bottom: none;
+}
+
+.prop-table th {
+  background: var(--bg-card);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+.prop-table td {
+  background: var(--bg-elev);
+  color: var(--fg-dim);
+}
+
+.prop-table td.mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12.5px;
+  color: var(--fg);
+}
+
+.prop-table td.mono.dim {
+  color: var(--fg-muted);
+}
+
+/* ---- Risk badge -------------------------------------------------------- */
+.risk-badge {
+  display: inline-block;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  line-height: 1.6;
+  vertical-align: middle;
+}
+
+.risk-low {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.06);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+.risk-medium {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+.risk-high {
+  color: var(--accent);
+  background: rgba(251, 146, 60, 0.06);
+  border-color: rgba(251, 146, 60, 0.3);
+}
+.risk-critical {
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+/* ---- Docs card grid ---------------------------------------------------- */
+.docs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin: 32px 0 12px;
+  max-width: 880px;
+}
+
+@media (min-width: 640px) {
+  .docs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.docs-card {
+  display: block;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  transition: all 200ms ease;
+}
+
+.docs-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  background: #12121a;
+  text-decoration: none !important;
+}
+
+.docs-card .card-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-muted);
+  margin-bottom: 10px;
+}
+
+.docs-card .card-title {
+  font-size: 17px;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.docs-card .card-desc {
+  font-size: 13.5px;
+  color: var(--fg-dim);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---- Pager ------------------------------------------------------------- */
+.docs-pager {
+  margin-top: 96px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pager-link {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  text-decoration: none !important;
+  transition: all 200ms ease;
+}
+
+.pager-link:hover {
+  border-color: var(--border-strong);
+  background: #12121a;
+}
+
+.pager-link.next {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.pager-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.pager-title {
+  font-size: 15px;
+  color: var(--fg) !important;
+  letter-spacing: -0.01em;
+}
+
