@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.org",
+  "name": "crif",
+  "description": "Transaction legibility and simulation engine for Solana. Decodes instructions, diffs state, detects the Drift 2026 exploit pattern. Offline mode. Rust. Open source.",
+  "version": "0.1.0",
+  "stage": "pre-deployment",
+  "license": "MIT",
+  "network": "solana",
+  "deployment": {
+    "devnet": "pending",
+    "mainnet": "pending"
+  },
+  "source_code": "https://github.com/Nulltx-xyz/crif",
+  "documentation": "https://crif.fun/docs",
+  "health_endpoint": "https://crif.fun/api/health",
+  "sameAs": [
+    "https://github.com/Nulltx-xyz/crif",
+    "https://x.com/crif_fun"
+  ],
+  "coverage": {
+    "programs_decoded": 8,
+    "instructions_covered": 80,
+    "tests_passing": 28,
+    "tests_failing": 0
+  },
+  "decoders": [
+    "System Program",
+    "SPL Token",
+    "Token-2022",
+    "Squads v4",
+    "Jupiter v6",
+    "Drift v2",
+    "Kamino Lend",
+    "MarginFi v2"
+  ],
+  "security_features": [
+    "versioned-transaction-simulation",
+    "account-state-diff",
+    "anchor-discriminator-decoding",
+    "durable-nonce-detection",
+    "drift-2026-pattern-detection",
+    "offline-mode"
+  ],
+  "programming_language": ["Rust", "TypeScript"],
+  "contact": {
+    "type": "github-issues",
+    "url": "https://github.com/Nulltx-xyz/crif/issues"
+  }
+}
