@@ -207,3 +207,20 @@ crif/
 │   │   ├── token_2022.rs       Token-2022 / Token Extensions decoder
 │   │   ├── squads.rs           Squads v4 multisig decoder
 │   │   ├── anchor_generic.rs   Generic Anchor program decoder (8-byte discriminator matching)
+│   │   ├── jupiter.rs          Jupiter aggregator decoder
+│   │   ├── drift_v2.rs         Drift v2 protocol decoder
+│   │   ├── kamino.rs           Kamino Lend decoder
+│   │   └── marginfi.rs         MarginFi decoder
+│   └── classifier/
+│       └── mod.rs              classify(), attach() -- risk aggregation, Drift pattern
+│                               detection, human summary generation
+├── tests/
+│   ├── decoder_unit.rs         unit tests for System + SPL Token decoders
+│   ├── squads_unit.rs          unit tests for Squads v4 decoder
+│   ├── protocol_decoders.rs    unit tests for Jupiter, Drift, Kamino, MarginFi decoders
+│   ├── drift_attack_e2e.rs     end-to-end Drift exploit pattern detection test
+│   └── devnet_integration.rs   live devnet integration test (requires network + faucet)
+├── examples/
+│   └── drift_attack_demo.rs    standalone reproduction of the Drift 2026 attack pattern
+├── assets/
+│   └── banner.png              project banner image
