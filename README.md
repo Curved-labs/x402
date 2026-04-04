@@ -224,3 +224,22 @@ crif/
 │   └── drift_attack_demo.rs    standalone reproduction of the Drift 2026 attack pattern
 ├── assets/
 │   └── banner.png              project banner image
+├── docs/                       additional documentation
+├── Cargo.toml                  package manifest (crif v0.1.0)
+├── Cargo.lock                  dependency lockfile
+├── Makefile                    build and test shortcuts
+├── LICENSE                     MIT license
+├── CONTRIBUTING.md             contribution guidelines
+├── SECURITY.md                 security policy
+├── CODE_OF_CONDUCT.md          code of conduct
+├── CHANGELOG.md                version history
+├── ROADMAP.md                  planned features
+├── clippy.toml                 clippy configuration
+├── rustfmt.toml                rustfmt configuration
+└── rust-toolchain.toml         toolchain pinning
+```
+
+---
+
+## Performance and Coverage
+
