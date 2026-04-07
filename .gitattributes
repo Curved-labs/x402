@@ -1,0 +1,23 @@
+* text=auto eol=lf
+
+*.rs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.css text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
+
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
+*.rs linguist-language=Rust
+docs/* linguist-documentation
+web/public/* linguist-vendored
