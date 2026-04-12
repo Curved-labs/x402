@@ -1,0 +1,19 @@
+{
+  "name": "@curved/x402",
+  "version": "0.1.0",
+  "description": "x402 payments on Solana",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
