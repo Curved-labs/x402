@@ -1,0 +1,33 @@
+[toolchain]
+anchor_version = "0.31.1"
+solana_version = "2.1.6"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+x402_settle = "12wgXGsPik37Sb2UViocZqLuBrSGZXPgsNtjM8K1yZ8Y"
+
+[programs.devnet]
+x402_settle = "12wgXGsPik37Sb2UViocZqLuBrSGZXPgsNtjM8K1yZ8Y"
+
+[programs.mainnet]
+x402_settle = "12wgXGsPik37Sb2UViocZqLuBrSGZXPgsNtjM8K1yZ8Y"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx tsx sdk/test/e2e.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
