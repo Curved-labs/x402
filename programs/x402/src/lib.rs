@@ -1,6 +1,9 @@
 //! x402sol settlement program (Anchor).
 
 use anchor_lang::prelude::*;
+use anchor_spl::token_interface::{
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+};
 
 declare_id!("12wgXGsPik37Sb2UViocZqLuBrSGZXPgsNtjM8K1yZ8Y");
 
@@ -13,6 +16,22 @@ pub mod x402_settle {
         e.authority = ctx.accounts.payer.key();
         e.bump = ctx.bumps.escrow;
         Ok(())
+    }
+
+    pub fn deposit(ctx: Context<Fund>, amount: u64) -> Result<()> {
+        transfer_checked(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                TransferChecked {
+                    from: ctx.accounts.payer_tokens.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.vault.to_account_info(),
+                    authority: ctx.accounts.payer.to_account_info(),
+                },
+            ),
+            amount,
+            ctx.accounts.mint.decimals,
+        )
     }
 }
 
@@ -32,5 +51,24 @@ pub struct OpenEscrow<'info> {
         seeds = [b"escrow", payer.key().as_ref()], bump
     )]
     pub escrow: Box<Account<'info, Escrow>>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct Fund<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(seeds = [b"escrow", payer.key().as_ref()], bump = escrow.bump)]
+    pub escrow: Box<Account<'info, Escrow>>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, token::mint = mint, token::authority = payer)]
+    pub payer_tokens: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(
+        init_if_needed, payer = payer,
+        seeds = [b"vault", escrow.key().as_ref(), mint.key().as_ref()], bump,
+        token::mint = mint, token::authority = escrow, token::token_program = token_program,
+    )]
+    pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
