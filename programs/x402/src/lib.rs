@@ -33,6 +33,25 @@ pub mod x402_settle {
             ctx.accounts.mint.decimals,
         )
     }
+
+    pub fn withdraw(ctx: Context<Fund>, amount: u64) -> Result<()> {
+        let payer = ctx.accounts.payer.key();
+        let seeds: &[&[u8]] = &[b"escrow", payer.as_ref(), &[ctx.accounts.escrow.bump]];
+        transfer_checked(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                TransferChecked {
+                    from: ctx.accounts.vault.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.payer_tokens.to_account_info(),
+                    authority: ctx.accounts.escrow.to_account_info(),
+                },
+                &[seeds],
+            ),
+            amount,
+            ctx.accounts.mint.decimals,
+        )
+    }
 }
 
 #[account]
