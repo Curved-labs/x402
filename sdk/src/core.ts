@@ -42,3 +42,22 @@ export const vaultPda = (escrow: PublicKey, mint: PublicKey) =>
   PublicKey.findProgramAddressSync([Buffer.from("vault"), escrow.toBuffer(), mint.toBuffer()], PROGRAM_ID)[0];
 export const ata = (owner: PublicKey, mint: PublicKey) =>
   PublicKey.findProgramAddressSync([owner.toBuffer(), TOKEN_ID.toBuffer(), mint.toBuffer()], ATA_ID)[0];
+
+export type Authorization = {
+  payer: PublicKey;
+  payee: PublicKey;
+  mint: PublicKey;
+  amount: bigint;
+  nonce: bigint;
+  expiry: bigint;
+};
+
+/// The exact bytes the agent signs.
+export function authorizationBytes(a: Authorization): Uint8Array {
+  return cat(AUTH_DOMAIN, a.payer.toBytes(), a.payee.toBytes(), a.mint.toBytes(),
+    u64le(a.amount), u64le(a.nonce), i64le(a.expiry));
+}
+
+export function signAuthorization(agent: Keypair, a: Authorization): Uint8Array {
+  return nacl.sign.detached(authorizationBytes(a), agent.secretKey);
+}
