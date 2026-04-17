@@ -61,3 +61,44 @@ export function authorizationBytes(a: Authorization): Uint8Array {
 export function signAuthorization(agent: Keypair, a: Authorization): Uint8Array {
   return nacl.sign.detached(authorizationBytes(a), agent.secretKey);
 }
+
+/// Ed25519 native-program instruction (offsets match the on-chain check).
+export function ed25519Ix(pubkey: Uint8Array, sig: Uint8Array, msg: Uint8Array): TransactionInstruction {
+  const [pkOff, sigOff, msgOff] = [16, 48, 112];
+  const head = new Uint8Array(16);
+  head[0] = 1;
+  const dv = new DataView(head.buffer);
+  [sigOff, 0xffff, pkOff, 0xffff, msgOff, msg.length, 0xffff].forEach((v, i) => dv.setUint16(2 + i * 2, v, true));
+  return new TransactionInstruction({ programId: ED25519_ID, keys: [], data: Buffer.from(cat(head, pubkey, sig, msg)) });
+}
+
+export function openEscrowIx(payer: PublicKey): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: payer, isSigner: true, isWritable: true },
+      { pubkey: escrowPda(payer), isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(disc("open_escrow")),
+  });
+}
+
+function fundKeys(payer: PublicKey, mint: PublicKey) {
+  const escrow = escrowPda(payer);
+  return [
+    { pubkey: payer, isSigner: true, isWritable: true },
+    { pubkey: escrow, isSigner: false, isWritable: false },
+    { pubkey: mint, isSigner: false, isWritable: false },
+    { pubkey: ata(payer, mint), isSigner: false, isWritable: true },
+    { pubkey: vaultPda(escrow, mint), isSigner: false, isWritable: true },
+    { pubkey: TOKEN_ID, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
+}
+
+export const depositIx = (payer: PublicKey, mint: PublicKey, amount: bigint) =>
+  new TransactionInstruction({ programId: PROGRAM_ID, keys: fundKeys(payer, mint), data: Buffer.from(cat(disc("deposit"), u64le(amount))) });
+
+export const withdrawIx = (payer: PublicKey, mint: PublicKey, amount: bigint) =>
+  new TransactionInstruction({ programId: PROGRAM_ID, keys: fundKeys(payer, mint), data: Buffer.from(cat(disc("withdraw"), u64le(amount))) });
