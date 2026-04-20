@@ -4,7 +4,7 @@ Facilitator-less x402 settlement on Solana.
 
 ## Status
 
-Under development.
+Under active development. Program deployed on devnet.
 
 ## Architecture
 
