@@ -102,3 +102,41 @@ export const depositIx = (payer: PublicKey, mint: PublicKey, amount: bigint) =>
 
 export const withdrawIx = (payer: PublicKey, mint: PublicKey, amount: bigint) =>
   new TransactionInstruction({ programId: PROGRAM_ID, keys: fundKeys(payer, mint), data: Buffer.from(cat(disc("withdraw"), u64le(amount))) });
+
+export const NONCE_WINDOW_BITS = 1024n;
+export const noncePda = (payer: PublicKey, nonce: bigint) =>
+  PublicKey.findProgramAddressSync(
+    [Buffer.from("nonce"), payer.toBuffer(), u64le(nonce / NONCE_WINDOW_BITS)],
+    PROGRAM_ID,
+  )[0];
+
+export function payIx(relayer: PublicKey, a: Authorization): TransactionInstruction {
+  const escrow = escrowPda(a.payer);
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: relayer, isSigner: true, isWritable: true },
+      { pubkey: escrow, isSigner: false, isWritable: false },
+      { pubkey: a.mint, isSigner: false, isWritable: false },
+      { pubkey: vaultPda(escrow, a.mint), isSigner: false, isWritable: true },
+      { pubkey: ata(a.payee, a.mint), isSigner: false, isWritable: true },
+      { pubkey: noncePda(a.payer, a.nonce), isSigner: false, isWritable: true },
+      { pubkey: new PublicKey("Sysvar1nstructions1111111111111111111111111"), isSigner: false, isWritable: false },
+      { pubkey: TOKEN_ID, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(cat(disc("pay"), u64le(a.amount), u64le(a.nonce), i64le(a.expiry))),
+  });
+}
+
+/// Relay one signed authorization.
+export async function relay(conn: Connection, relayer: Keypair, a: Authorization, sig: Uint8Array): Promise<string> {
+  const tx = new Transaction().add(ed25519Ix(a.payer.toBytes(), sig, authorizationBytes(a)), payIx(relayer.publicKey, a));
+  tx.feePayer = relayer.publicKey;
+  tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+  tx.sign(relayer);
+  const s = await conn.sendRawTransaction(tx.serialize());
+  const bh = await conn.getLatestBlockhash();
+  await conn.confirmTransaction({ signature: s, ...bh }, "confirmed");
+  return s;
+}
