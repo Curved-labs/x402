@@ -7,3 +7,4 @@ Anchor program for facilitator-less x402 payments.
 - `open_escrow` - open a new escrow PDA
 - `deposit` - fund the vault
 - `withdraw` - withdraw from the vault
+- `pay` - settle an authorized payment
