@@ -103,6 +103,8 @@ export const depositIx = (payer: PublicKey, mint: PublicKey, amount: bigint) =>
 export const withdrawIx = (payer: PublicKey, mint: PublicKey, amount: bigint) =>
   new TransactionInstruction({ programId: PROGRAM_ID, keys: fundKeys(payer, mint), data: Buffer.from(cat(disc("withdraw"), u64le(amount))) });
 
+/// Nonces live in bitmap windows of 1024, so the account rent is paid once per
+/// window rather than once per payment.
 export const NONCE_WINDOW_BITS = 1024n;
 export const noncePda = (payer: PublicKey, nonce: bigint) =>
   PublicKey.findProgramAddressSync(
