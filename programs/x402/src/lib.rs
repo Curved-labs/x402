@@ -25,7 +25,6 @@ pub mod x402_settle {
     pub fn open_escrow(ctx: Context<OpenEscrow>) -> Result<()> {
         let e = &mut ctx.accounts.escrow;
         e.authority = ctx.accounts.payer.key();
-        e.nonce = 0;
         e.bump = ctx.bumps.escrow;
         Ok(())
     }
@@ -67,7 +66,7 @@ pub mod x402_settle {
 
     /// Settle one authorized payment. Permissionless: `relayer` can be anyone.
     pub fn pay(ctx: Context<Pay>, amount: u64, nonce: u64, expiry: i64) -> Result<()> {
-        let escrow = &mut ctx.accounts.escrow;
+        let escrow = &ctx.accounts.escrow;
         let payer = escrow.authority;
         let payee = ctx.accounts.payee_tokens.owner;
         let mint = ctx.accounts.mint.key();
@@ -75,11 +74,14 @@ pub mod x402_settle {
         let msg = authorization(&payer, &payee, &mint, amount, nonce, expiry);
         verify_ed25519(&ctx.accounts.instructions.to_account_info(), &payer, &msg)?;
 
-        require!(nonce == escrow.nonce, X402Error::NonceSpent);
         let now = Clock::get()?.unix_timestamp;
         require!(now <= expiry, X402Error::Expired);
 
-        escrow.nonce += 1;
+        let w = &mut ctx.accounts.nonce;
+        let bit = (nonce % NonceWindow::BITS) as usize;
+        let (byte, mask) = (bit / 8, 1u8 << (bit % 8));
+        require!(w.bits[byte] & mask == 0, X402Error::NonceSpent);
+        w.bits[byte] |= mask;
 
         let seeds: &[&[u8]] = &[b"escrow", payer.as_ref(), &[escrow.bump]];
         transfer_checked(
@@ -114,8 +116,6 @@ pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64,
     m
 }
 
-/// Require the instruction directly before this one to be an Ed25519 native
-/// verification of (payer_pubkey, expected_msg).
 fn verify_ed25519(ix_sysvar: &AccountInfo, payer: &Pubkey, expected: &[u8]) -> Result<()> {
     let cur = load_current_index_checked(ix_sysvar)? as usize;
     require!(cur > 0, X402Error::MissingSig);
@@ -140,10 +140,20 @@ fn verify_ed25519(ix_sysvar: &AccountInfo, payer: &Pubkey, expected: &[u8]) -> R
 #[account]
 pub struct Escrow {
     pub authority: Pubkey,
-    pub nonce: u64,
     pub bump: u8,
 }
-impl Escrow { pub const SIZE: usize = 8 + 32 + 8 + 1; }
+impl Escrow { pub const SIZE: usize = 8 + 32 + 1; }
+
+/// One account covers 1024 nonces, so the rent that used to be paid per
+/// payment is paid once per window and amortised ~1000x.
+#[account]
+pub struct NonceWindow {
+    pub bits: [u8; 128],
+}
+impl NonceWindow {
+    pub const BITS: u64 = 1024;
+    pub const SIZE: usize = 8 + 128;
+}
 
 #[derive(Accounts)]
 pub struct OpenEscrow<'info> {
@@ -161,8 +171,11 @@ pub struct OpenEscrow<'info> {
 pub struct Fund<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(seeds = [b"escrow", payer.key().as_ref()], bump = escrow.bump)]
+    #[account(seeds = [b"escrow", payer.key().as_ref()], bump = escrow.bump, has_one = authority @ X402Error::NotAuthority)]
     pub escrow: Box<Account<'info, Escrow>>,
+    /// CHECK: escrow.authority == payer enforced via has_one
+    #[account(address = payer.key())]
+    pub authority: UncheckedAccount<'info>,
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(mut, token::mint = mint, token::authority = payer)]
     pub payer_tokens: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -177,11 +190,12 @@ pub struct Fund<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(amount: u64, auth_nonce: u64)]
 pub struct Pay<'info> {
-    /// anyone: the relayer pays the fee
+    /// anyone: the relayer pays the fee, and the window rent once per 1024 nonces
     #[account(mut)]
     pub relayer: Signer<'info>,
-    #[account(mut, seeds = [b"escrow", escrow.authority.as_ref()], bump = escrow.bump)]
+    #[account(seeds = [b"escrow", escrow.authority.as_ref()], bump = escrow.bump)]
     pub escrow: Box<Account<'info, Escrow>>,
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
@@ -192,6 +206,11 @@ pub struct Pay<'info> {
     pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut, token::mint = mint)]
     pub payee_tokens: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(
+        init_if_needed, payer = relayer, space = NonceWindow::SIZE,
+        seeds = [b"nonce", escrow.authority.as_ref(), &(auth_nonce / NonceWindow::BITS).to_le_bytes()], bump
+    )]
+    pub nonce: Box<Account<'info, NonceWindow>>,
     /// CHECK: constrained to the instructions sysvar
     #[account(address = INSTRUCTIONS_ID)]
     pub instructions: UncheckedAccount<'info>,
@@ -213,4 +232,6 @@ pub enum X402Error {
     Expired,
     #[msg("authorization already spent")]
     NonceSpent,
+    #[msg("not the escrow authority")]
+    NotAuthority,
 }
