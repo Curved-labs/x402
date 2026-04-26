@@ -1,8 +1,13 @@
-//! x402sol settlement program (Anchor).
+//! x402sol -- facilitator-less x402 settlement on Solana.
 //!
 //! An AI agent pre-funds a non-custodial escrow once, then makes gasless
 //! micropayments by signing off-chain authorizations. Any relayer submits an
-//! authorization to this program; the program is the facilitator.
+//! authorization to this program; the program is the facilitator. There is no
+//! trusted server that can refuse a valid payment.
+//!
+//! A `pay` transaction carries an Ed25519 native-program instruction proving the
+//! payer signed exactly this authorization, then this program verifies the
+//! authorization matches, is unused (nonce bitmap), and unexpired, and transfers.
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar::instructions::{
@@ -22,10 +27,20 @@ pub const AUTH_DOMAIN: &[u8] = b"X402SOL_AUTH_V1";
 pub mod x402_settle {
     use super::*;
 
-    pub fn open_escrow(ctx: Context<OpenEscrow>) -> Result<()> {
+    /// Open a payer's escrow + a per-mint vault. Non-custodial: only the payer
+    /// authority can deposit/withdraw. `delegate` is the agent's signing key:
+    /// it can authorize payments but can never withdraw.
+    pub fn open_escrow(ctx: Context<OpenEscrow>, delegate: Pubkey) -> Result<()> {
         let e = &mut ctx.accounts.escrow;
         e.authority = ctx.accounts.payer.key();
+        e.delegate = delegate;
         e.bump = ctx.bumps.escrow;
+        Ok(())
+    }
+
+    /// Rotate or revoke the agent key. Authority-only.
+    pub fn set_delegate(ctx: Context<SetDelegate>, new_delegate: Pubkey) -> Result<()> {
+        ctx.accounts.escrow.delegate = new_delegate;
         Ok(())
     }
 
@@ -64,15 +79,18 @@ pub mod x402_settle {
         )
     }
 
-    /// Settle one authorized payment. Permissionless: `relayer` can be anyone.
+    /// Settle one authorized payment. Permissionless: `relayer` can be anyone
+    /// (including the payee).
     pub fn pay(ctx: Context<Pay>, amount: u64, nonce: u64, expiry: i64) -> Result<()> {
         let escrow = &ctx.accounts.escrow;
         let payer = escrow.authority;
         let payee = ctx.accounts.payee_tokens.owner;
         let mint = ctx.accounts.mint.key();
 
+        let delegate = escrow.delegate;
+        require!(delegate != Pubkey::default(), X402Error::DelegateRevoked);
         let msg = authorization(&payer, &payee, &mint, amount, nonce, expiry);
-        verify_ed25519(&ctx.accounts.instructions.to_account_info(), &payer, &msg)?;
+        verify_ed25519(&ctx.accounts.instructions.to_account_info(), &delegate, &msg)?;
 
         let now = Clock::get()?.unix_timestamp;
         require!(now <= expiry, X402Error::Expired);
@@ -99,11 +117,12 @@ pub mod x402_settle {
             ctx.accounts.mint.decimals,
         )?;
 
+        emit!(Paid { payer, payee, mint, amount, nonce });
         Ok(())
     }
 }
 
-/// The exact message the payer signs off-chain.
+/// The exact message the payer signs off-chain (Ed25519, no prehash). 135 bytes.
 pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, expiry: i64) -> Vec<u8> {
     let mut m = Vec::with_capacity(15 + 32 * 3 + 24);
     m.extend_from_slice(AUTH_DOMAIN);
@@ -140,12 +159,11 @@ fn verify_ed25519(ix_sysvar: &AccountInfo, payer: &Pubkey, expected: &[u8]) -> R
 #[account]
 pub struct Escrow {
     pub authority: Pubkey,
+    pub delegate: Pubkey,
     pub bump: u8,
 }
-impl Escrow { pub const SIZE: usize = 8 + 32 + 1; }
+impl Escrow { pub const SIZE: usize = 8 + 32 + 32 + 1; }
 
-/// One account covers 1024 nonces, so the rent that used to be paid per
-/// payment is paid once per window and amortised ~1000x.
 #[account]
 pub struct NonceWindow {
     pub bits: [u8; 128],
@@ -153,6 +171,15 @@ pub struct NonceWindow {
 impl NonceWindow {
     pub const BITS: u64 = 1024;
     pub const SIZE: usize = 8 + 128;
+}
+
+#[event]
+pub struct Paid {
+    pub payer: Pubkey,
+    pub payee: Pubkey,
+    pub mint: Pubkey,
+    pub amount: u64,
+    pub nonce: u64,
 }
 
 #[derive(Accounts)]
@@ -165,6 +192,17 @@ pub struct OpenEscrow<'info> {
     )]
     pub escrow: Box<Account<'info, Escrow>>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetDelegate<'info> {
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"escrow", authority.key().as_ref()], bump = escrow.bump,
+        has_one = authority @ X402Error::NotAuthority
+    )]
+    pub escrow: Box<Account<'info, Escrow>>,
 }
 
 #[derive(Accounts)]
@@ -192,7 +230,6 @@ pub struct Fund<'info> {
 #[derive(Accounts)]
 #[instruction(amount: u64, auth_nonce: u64)]
 pub struct Pay<'info> {
-    /// anyone: the relayer pays the fee, and the window rent once per 1024 nonces
     #[account(mut)]
     pub relayer: Signer<'info>,
     #[account(seeds = [b"escrow", escrow.authority.as_ref()], bump = escrow.bump)]
@@ -234,4 +271,6 @@ pub enum X402Error {
     NonceSpent,
     #[msg("not the escrow authority")]
     NotAuthority,
+    #[msg("the delegate has been revoked")]
+    DelegateRevoked,
 }
