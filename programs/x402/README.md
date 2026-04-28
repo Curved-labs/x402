@@ -2,6 +2,13 @@
 
 Anchor program for facilitator-less x402 payments.
 
+## Account sizes
+
+| Account | Size (bytes) |
+|---|---|
+| Escrow | 73 |
+| NonceWindow | 136 |
+
 ## Instructions
 
 - `open_escrow` - open a new escrow PDA
