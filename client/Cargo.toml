@@ -1,0 +1,35 @@
+[workspace]
+
+[package]
+name = "x402-client"
+version = "0.4.1"
+edition = "2021"
+authors = ["CURVED core"]
+license = "MIT"
+repository = "https://github.com/Curved-labs/x402"
+homepage = "https://curved.dev"
+description = "Rust client and relay binaries for x402 settlement"
+
+[lib]
+name = "x402_client"
+path = "src/lib.rs"
+
+[[bin]]
+name = "s1"
+path = "src/main.rs"
+
+[[bin]]
+name = "s2_http"
+path = "src/bin/s2_http.rs"
+
+[[bin]]
+name = "s3_relay"
+path = "src/bin/s3_relay.rs"
+
+[dependencies]
+solana-client = "3"
+solana-sdk = "3"
+solana-commitment-config = "3"
+solana-system-interface = { version = "3", features = ["bincode"] }
+ed25519-dalek = "2"
+sha2 = "0.10"
