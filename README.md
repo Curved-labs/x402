@@ -1,5 +1,7 @@
 # x402sol
 
+> Facilitator-less x402 payments on Solana
+
 Facilitator-less x402 settlement on Solana.
 
 ## Status
