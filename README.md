@@ -14,6 +14,12 @@ Under active development. Program deployed on devnet.
 npm install @curved/x402
 ```
 
+## Quick start
+
+1. `anchor build` to build the on-chain program
+2. `cd sdk && npm install && npm run build` to build the SDK
+3. `cd client && cargo build` to build the Rust client
+
 ## Architecture
 
 The agent pre-funds a non-custodial escrow, then signs off-chain authorizations for each payment. Nonces are tracked in a Permit2-style bitmap (1024 bits per window account) so concurrent settlements never collide.
