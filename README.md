@@ -14,6 +14,8 @@ Under active development. Program deployed on devnet.
 npm install @curved/x402
 ```
 
+Requires Node 20+.
+
 ## Quick start
 
 1. `anchor build` to build the on-chain program
