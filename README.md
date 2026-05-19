@@ -8,7 +8,7 @@ Facilitator-less x402 settlement on Solana.
 
 ## Status
 
-Under active development. Program deployed on devnet.
+SDK and on-chain program for facilitator-less x402 payments on Solana.
 
 ## SDK
 
