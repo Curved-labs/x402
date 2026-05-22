@@ -16,6 +16,15 @@ SDK and on-chain program for facilitator-less x402 payments on Solana.
 npm install @curved/x402
 ```
 
+### Wall middleware
+
+Drop a paywall in front of any Express route:
+
+```typescript
+import { wall } from '@curved/x402';
+app.use('/api', wall(config));
+```
+
 Requires Node 20+.
 
 ## Quick start
