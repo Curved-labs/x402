@@ -80,3 +80,25 @@ export function wall(cfg: WallConfig) {
     }
   };
 }
+
+/// Fetch-style handlers: Hono, workers, Bun, Deno, plain Request/Response.
+export function fetchWall(cfg: WallConfig, handler: (req: Request, settlement: SettlementResponse) => Promise<Response> | Response) {
+  return async (req: Request): Promise<Response> => {
+    const path = new URL(req.url).pathname;
+    try {
+      const r = await check(cfg, path, req.headers.get("x-payment"));
+      if (!r.paid) {
+        return new Response(JSON.stringify(r.body), {
+          status: 402, headers: { "content-type": "application/json" },
+        });
+      }
+      const out = await handler(req, r.settlement);
+      out.headers.set("X-PAYMENT-RESPONSE", r.header);
+      return out;
+    } catch (e) {
+      return new Response(JSON.stringify({ x402Version: 1, error: (e as Error).message, accepts: [] }), {
+        status: 402, headers: { "content-type": "application/json" },
+      });
+    }
+  };
+}
