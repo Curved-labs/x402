@@ -5,7 +5,10 @@ build:
 	cd sdk && npm run build
 
 test:
-	cd sdk && npm test
+	cd sdk && npm run test:suite
+
+test-all:
+	cd sdk && npm run test:suite && npm run test:wallet
 
 lint:
 	cargo fmt --all -- --check
