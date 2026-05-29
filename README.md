@@ -40,6 +40,19 @@ docker build -t x402-relay .
 docker run -p 8080:8080 x402-relay
 ```
 
+## Error codes
+
+| Code | Name | Description |
+|---|---|---|
+| 6000 | MissingSig | Missing Ed25519 verification instruction |
+| 6001 | BadSigIx | Malformed Ed25519 instruction |
+| 6002 | WrongSigner | Authorization not signed by the payer |
+| 6003 | WrongAuth | Authorization does not match this payment |
+| 6004 | Expired | Authorization expired |
+| 6005 | NonceSpent | Authorization already spent |
+| 6006 | NotAuthority | Not the escrow authority |
+| 6007 | DelegateRevoked | The delegate has been revoked |
+
 ## Architecture
 
 The agent pre-funds a non-custodial escrow, then signs off-chain authorizations for each payment. Nonces are tracked in a Permit2-style bitmap (1024 bits per window account) so concurrent settlements never collide.
