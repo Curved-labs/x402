@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "tsx test/e2e.ts",
     "test:wall": "tsx test/wall-e2e.ts",
+    "test:suite": "tsx test/suite.ts",
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\""
