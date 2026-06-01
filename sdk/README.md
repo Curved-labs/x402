@@ -16,6 +16,14 @@ npm install @curved/x402
 - `server.ts` - payee-side quote builder
 - `wall.ts` - Express/fetch middleware
 
+## Testing
+
+```bash
+npm run test:suite      # integration suite
+npm run test:wall       # wall middleware e2e
+npm test                # localnet e2e
+```
+
 ## Usage
 
 ```typescript
