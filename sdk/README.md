@@ -15,6 +15,7 @@ npm install @curved/x402
 - `client.ts` - payer-side fetch wrapper
 - `server.ts` - payee-side quote builder
 - `wall.ts` - Express/fetch middleware
+- `cli.ts` - escrow init and status CLI
 
 ## Testing
 
