@@ -10,6 +10,7 @@
     "test": "tsx test/e2e.ts",
     "test:wall": "tsx test/wall-e2e.ts",
     "test:suite": "tsx test/suite.ts",
+    "test:wallet": "tsx test/wallet.ts",
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\""
