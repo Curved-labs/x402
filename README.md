@@ -29,9 +29,15 @@ Requires Node 20+.
 
 ## Quick start
 
-1. `anchor build` to build the on-chain program
-2. `cd sdk && npm install && npm run build` to build the SDK
-3. `cd client && cargo build` to build the Rust client
+```bash
+# build
+anchor build
+cd sdk && npm install && npm run build
+cd client && cargo build
+
+# test
+make test
+```
 
 ## Docker
 
