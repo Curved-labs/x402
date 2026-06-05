@@ -11,6 +11,7 @@
     "test:wall": "tsx test/wall-e2e.ts",
     "test:suite": "tsx test/suite.ts",
     "test:wallet": "tsx test/wallet.ts",
+    "test:concurrent": "tsx test/concurrent.ts",
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\""
