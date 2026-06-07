@@ -27,6 +27,13 @@ app.use('/api', wall(config));
 
 Requires Node 20+.
 
+## Tests
+
+```bash
+make test       # integration suite
+make test-all   # suite + wallet + concurrent
+```
+
 ## Quick start
 
 ```bash
