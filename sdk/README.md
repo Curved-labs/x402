@@ -8,6 +8,8 @@ TypeScript SDK for the x402 settlement program.
 npm install @curved/x402
 ```
 
+The SDK is ESM-only. Node 20+ required.
+
 ## Modules
 
 - `core.ts` - constants, PDAs, instruction builders, relay
