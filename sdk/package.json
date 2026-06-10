@@ -31,6 +31,41 @@
   "bin": {
     "curved": "dist/cli.js"
   },
+  "keywords": [
+    "x402",
+    "solana",
+    "payments",
+    "agent",
+    "http-402",
+    "micropayments",
+    "usdc",
+    "anchor",
+    "web3",
+    "settlement",
+    "escrow"
+  ],
+  "author": {
+    "name": "CURVED core",
+    "url": "https://curved.dev"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Curved-labs/x402.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://curved.dev",
+  "bugs": {
+    "url": "https://github.com/Curved-labs/x402/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "sideEffects": false,
   "devDependencies": {
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
