@@ -6,9 +6,9 @@
 
 Facilitator-less x402 settlement on Solana.
 
-## Status
+## Overview
 
-SDK and on-chain program for facilitator-less x402 payments on Solana.
+SDK and on-chain program for facilitator-less x402 payments on Solana. The payer pre-funds a non-custodial escrow once. The agent signs off-chain authorizations. Any relayer settles them. No trusted server can refuse a valid payment.
 
 ## SDK
 
