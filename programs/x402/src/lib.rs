@@ -122,7 +122,7 @@ pub mod x402_settle {
     }
 }
 
-/// The exact message the payer signs off-chain (Ed25519, no prehash). 135 bytes.
+/// The exact message the payer signs off-chain (Ed25519, no prehash).
 pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, expiry: i64) -> Vec<u8> {
     let mut m = Vec::with_capacity(15 + 32 * 3 + 24);
     m.extend_from_slice(AUTH_DOMAIN);
