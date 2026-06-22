@@ -53,6 +53,16 @@ docker build -t x402-relay .
 docker run -p 8080:8080 x402-relay
 ```
 
+## Project structure
+
+```
+programs/x402/  - on-chain Anchor program
+sdk/            - TypeScript SDK
+client/         - Rust client library and example binaries
+examples/       - usage examples
+docs/           - specification documents
+```
+
 ## Error codes
 
 | Code | Name | Description |
