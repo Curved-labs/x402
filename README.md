@@ -50,7 +50,7 @@ make test
 
 ```bash
 docker build -t x402-relay .
-docker run -p 8080:8080 x402-relay
+docker run -e RPC=https://api.devnet.solana.com -p 8080:8080 x402-relay
 ```
 
 ## Project structure
