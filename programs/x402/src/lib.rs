@@ -29,7 +29,8 @@ pub mod x402_settle {
 
     /// Open a payer's escrow + a per-mint vault. Non-custodial: only the payer
     /// authority can deposit/withdraw. `delegate` is the agent's signing key:
-    /// it can authorize payments but can never withdraw.
+    /// it can authorize payments but can never withdraw. Session-key split:
+    /// the human owns the money, the bot borrows a revocable signature right.
     pub fn open_escrow(ctx: Context<OpenEscrow>, delegate: Pubkey) -> Result<()> {
         let e = &mut ctx.accounts.escrow;
         e.authority = ctx.accounts.payer.key();
