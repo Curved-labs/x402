@@ -39,7 +39,8 @@ pub mod x402_settle {
         Ok(())
     }
 
-    /// Rotate or revoke the agent key. Authority-only.
+    /// Rotate or revoke the agent key. Authority-only. Setting the default
+    /// pubkey revokes: existing signed authorizations stop settling instantly.
     pub fn set_delegate(ctx: Context<SetDelegate>, new_delegate: Pubkey) -> Result<()> {
         ctx.accounts.escrow.delegate = new_delegate;
         Ok(())
