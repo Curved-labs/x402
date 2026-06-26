@@ -30,9 +30,11 @@ Requires Node 20+.
 ## Tests
 
 ```bash
-make test       # integration suite
-make test-all   # suite + wallet + concurrent
+make test       # 15-case integration suite
+make test-all   # suite + wallet policy + 64-concurrent burst
 ```
+
+All tests run on a local validator. The concurrent test settles 64 payments in parallel across bitmap windows.
 
 ## Quick start
 
