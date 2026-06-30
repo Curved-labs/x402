@@ -78,6 +78,10 @@ docs/           - specification documents
 | 6006 | NotAuthority | Not the escrow authority |
 | 6007 | DelegateRevoked | The delegate has been revoked |
 
+## Security model
+
+The on-chain program is the facilitator. No off-chain server can block a settlement. The payee can always self-relay.
+
 ## Architecture
 
 The agent pre-funds a non-custodial escrow, then signs off-chain authorizations for each payment. Nonces are tracked in a Permit2-style bitmap (1024 bits per window account) so concurrent settlements never collide.
