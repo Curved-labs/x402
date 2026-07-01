@@ -82,6 +82,10 @@ docs/           - specification documents
 
 The on-chain program is the facilitator. No off-chain server can block a settlement. The payee can always self-relay.
 
+## Zero-dependency client
+
+The payer needs zero npm dependencies. `@curved/x402/zero` uses only `node:crypto` for Ed25519 signing.
+
 ## Architecture
 
 The agent pre-funds a non-custodial escrow, then signs off-chain authorizations for each payment. Nonces are tracked in a Permit2-style bitmap (1024 bits per window account) so concurrent settlements never collide.
