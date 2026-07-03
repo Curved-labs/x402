@@ -86,7 +86,7 @@ export function authorizationBytes(a) {
 export function buildPaymentHeader(secretKey, quote, opts = {}) {
   const { priv, publicKey } = signerFrom(secretKey);
   const auth = {
-    payer: publicKey,
+    payer: opts.payer ? b58decode(opts.payer) : publicKey,
     payee: b58decode(quote.payTo),
     mint: b58decode(quote.asset),
     amount: BigInt(quote.maxAmountRequired),
