@@ -78,6 +78,14 @@ docs/           - specification documents
 | 6006 | NotAuthority | Not the escrow authority |
 | 6007 | DelegateRevoked | The delegate has been revoked |
 
+## Performance
+
+| Metric | Value |
+|---|---|
+| Settlement latency | ~503ms (devnet) |
+| Authorization size | 135 bytes |
+| Concurrent capacity | 1024 per window |
+
 ## Security model
 
 The on-chain program is the facilitator. No off-chain server can block a settlement. The payee can always self-relay.
