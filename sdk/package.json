@@ -26,6 +26,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./zero": {
+      "types": "./zero/client.d.mts",
+      "import": "./zero/client.mjs"
     }
   },
   "bin": {
