@@ -30,6 +30,10 @@
     "./zero": {
       "types": "./zero/client.d.mts",
       "import": "./zero/client.mjs"
+    },
+    "./wallet": {
+      "types": "./zero/wallet.d.mts",
+      "import": "./zero/wallet.mjs"
     }
   },
   "bin": {
