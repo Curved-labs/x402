@@ -6,7 +6,7 @@ Runnable examples for x402 payments. All require a funded devnet wallet.
 |---|---|
 | `pay-once.mjs` | Single payment with the zero-dependency client |
 | `wall-express.mjs` | Express server with payment wall |
-| `agent-budget.mjs` | Agent with daily spending budget (coming soon) |
+| `agent-budget.mjs` | Agent with daily spending budget |
 
 ## Setup
 
