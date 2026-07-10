@@ -25,6 +25,8 @@ export type Authorization = {
   mint: PublicKey;
   amount: bigint;
   nonce: bigint;
+  /// Not spendable before this unix second. Zero means "immediately".
+  validFrom: bigint;
   expiry: bigint;
 };
 
@@ -62,10 +64,10 @@ export const noncePda = (payer: PublicKey, nonce: bigint) =>
 export const ata = (owner: PublicKey, mint: PublicKey) =>
   PublicKey.findProgramAddressSync([owner.toBuffer(), TOKEN_ID.toBuffer(), mint.toBuffer()], ATA_ID)[0];
 
-/// The exact 135 bytes the agent signs. No transaction, no RPC.
+/// The exact 143 bytes the agent signs. No transaction, no RPC.
 export function authorizationBytes(a: Authorization): Uint8Array {
   return cat(AUTH_DOMAIN, a.payer.toBytes(), a.payee.toBytes(), a.mint.toBytes(),
-    u64le(a.amount), u64le(a.nonce), i64le(a.expiry));
+    u64le(a.amount), u64le(a.nonce), i64le(a.validFrom), i64le(a.expiry));
 }
 
 export function signAuthorization(agent: Keypair, a: Authorization): Uint8Array {
@@ -146,7 +148,7 @@ export function payIx(relayer: PublicKey, a: Authorization): TransactionInstruct
       { pubkey: TOKEN_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: Buffer.from(cat(disc("pay"), u64le(a.amount), u64le(a.nonce), i64le(a.expiry))),
+    data: Buffer.from(cat(disc("pay"), u64le(a.amount), u64le(a.nonce), i64le(a.validFrom), i64le(a.expiry))),
   });
 }
 
