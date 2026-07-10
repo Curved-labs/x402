@@ -109,6 +109,7 @@ export function buildPaymentHeader(agent: Keypair, req: PaymentRequirements): st
     nonce: BigInt(req.extra.nonce),
     // an HTTP quote is due now, so the window opens immediately. Scheduled
     // charges (a subscription month) set this ahead instead.
+    validFrom: 0n,
     expiry: BigInt(Math.floor(Date.now() / 1000) + req.maxTimeoutSeconds),
   };
   const sig = signAuthorization(agent, auth);
@@ -123,6 +124,7 @@ export function buildPaymentHeader(agent: Keypair, req: PaymentRequirements): st
         mint: auth.mint.toBase58(),
         amount: auth.amount.toString(),
         nonce: auth.nonce.toString(),
+        validFrom: auth.validFrom.toString(),
         expiry: auth.expiry.toString(),
       },
       signature: Buffer.from(sig).toString("base64"),
@@ -144,6 +146,7 @@ export function decodePaymentHeader(header: string): { auth: Authorization; sig:
       mint: new PublicKey(a.mint),
       amount: BigInt(a.amount),
       nonce: BigInt(a.nonce),
+      validFrom: BigInt(a.validFrom),
       expiry: BigInt(a.expiry),
     },
     sig: Uint8Array.from(Buffer.from(payload.payload.signature, "base64")),
