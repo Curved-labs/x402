@@ -1,15 +1,17 @@
-//! x402sol -- facilitator-less x402 settlement on Solana.
+//! x402sol — facilitator-less x402 settlement on Solana.
 //!
 //! An AI agent pre-funds a non-custodial escrow once, then makes gasless
 //! micropayments by signing off-chain authorizations. Any relayer submits an
 //! authorization to this program; the program is the facilitator. There is no
-//! trusted server that can refuse a valid payment.
+//! trusted server that can refuse a valid payment — the payee can always
+//! self-relay, so payments are uncensorable.
 //!
 //! A `pay` transaction carries an Ed25519 native-program instruction proving the
 //! payer signed exactly this authorization, then this program verifies the
 //! authorization matches, is unused (nonce bitmap), and unexpired, and transfers.
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::hash::hashv;
 use anchor_lang::solana_program::sysvar::instructions::{
     load_current_index_checked, load_instruction_at_checked, ID as INSTRUCTIONS_ID,
 };
@@ -82,27 +84,36 @@ pub mod x402_settle {
     }
 
     /// Settle one authorized payment. Permissionless: `relayer` can be anyone
-    /// (including the payee).
-    pub fn pay(ctx: Context<Pay>, amount: u64, nonce: u64, expiry: i64) -> Result<()> {
+    /// (including the payee). The program enforces what a facilitator would.
+    pub fn pay(ctx: Context<Pay>, amount: u64, nonce: u64, valid_from: i64, expiry: i64) -> Result<()> {
         let escrow = &ctx.accounts.escrow;
         let payer = escrow.authority;
         let payee = ctx.accounts.payee_tokens.owner;
         let mint = ctx.accounts.mint.key();
 
+        // the escrow's DELEGATE signed exactly THIS authorization for THIS payer
+        // (payee, mint, amount, nonce, expiry). A revoked delegate settles nothing.
         let delegate = escrow.delegate;
         require!(delegate != Pubkey::default(), X402Error::DelegateRevoked);
-        let msg = authorization(&payer, &payee, &mint, amount, nonce, expiry);
+        let msg = authorization(&payer, &payee, &mint, amount, nonce, valid_from, expiry);
         verify_ed25519(&ctx.accounts.instructions.to_account_info(), &delegate, &msg)?;
 
+        // inside its window. `valid_from` is what makes a stack of pre-signed
+        // authorizations a schedule instead of an allowance: a payee holding
+        // twelve monthly charges cannot pull them all on day one.
         let now = Clock::get()?.unix_timestamp;
+        require!(now >= valid_from, X402Error::NotYetValid);
         require!(now <= expiry, X402Error::Expired);
 
+        // spend the nonce by flipping its bit in the payer's window. The bit
+        // being set already is the replay guard.
         let w = &mut ctx.accounts.nonce;
         let bit = (nonce % NonceWindow::BITS) as usize;
         let (byte, mask) = (bit / 8, 1u8 << (bit % 8));
         require!(w.bits[byte] & mask == 0, X402Error::NonceSpent);
         w.bits[byte] |= mask;
 
+        // transfer amount from payer's vault to payee
         let seeds: &[&[u8]] = &[b"escrow", payer.as_ref(), &[escrow.bump]];
         transfer_checked(
             CpiContext::new_with_signer(
@@ -124,19 +135,24 @@ pub mod x402_settle {
     }
 }
 
-/// The exact message the payer signs off-chain (Ed25519, no prehash).
-pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, expiry: i64) -> Vec<u8> {
-    let mut m = Vec::with_capacity(15 + 32 * 3 + 24);
+/// The exact message the payer signs off-chain (Ed25519, no prehash). 143 bytes.
+pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, valid_from: i64, expiry: i64) -> Vec<u8> {
+    let mut m = Vec::with_capacity(15 + 32 * 3 + 32);
     m.extend_from_slice(AUTH_DOMAIN);
     m.extend_from_slice(payer.as_ref());
     m.extend_from_slice(payee.as_ref());
     m.extend_from_slice(mint.as_ref());
     m.extend_from_slice(&amount.to_le_bytes());
     m.extend_from_slice(&nonce.to_le_bytes());
+    m.extend_from_slice(&valid_from.to_le_bytes());
     m.extend_from_slice(&expiry.to_le_bytes());
     m
 }
 
+/// Require the instruction directly before this one to be an Ed25519 native
+/// verification of (payer_pubkey, expected_msg). The native program already
+/// proved the signature valid; we prove it covered our exact authorization and
+/// the payer's key. A relayer that alters payee/amount/etc. fails here.
 fn verify_ed25519(ix_sysvar: &AccountInfo, payer: &Pubkey, expected: &[u8]) -> Result<()> {
     let cur = load_current_index_checked(ix_sysvar)? as usize;
     require!(cur > 0, X402Error::MissingSig);
@@ -146,7 +162,8 @@ fn verify_ed25519(ix_sysvar: &AccountInfo, payer: &Pubkey, expected: &[u8]) -> R
 
     let d = &ix.data;
     require!(d.len() >= 16, X402Error::BadSigIx);
-    require!(d[0] == 1, X402Error::BadSigIx);
+    require!(d[0] == 1, X402Error::BadSigIx); // exactly one signature
+    // offsets struct (after 2-byte header): sig(2) sig_ix(4) pk(6) pk_ix(8) msg(10) msg_size(12) msg_ix(14)
     let u16at = |i: usize| u16::from_le_bytes([d[i], d[i + 1]]);
     let refs_self = |i: usize| { let v = u16at(i); v == u16::MAX || v == self_idx };
     require!(refs_self(4) && refs_self(8) && refs_self(14), X402Error::BadSigIx);
@@ -166,6 +183,9 @@ pub struct Escrow {
 }
 impl Escrow { pub const SIZE: usize = 8 + 32 + 32 + 1; }
 
+/// One account covers 1024 nonces, so the rent that used to be paid per
+/// payment is paid once per window and amortised ~1000x. Unordered, like
+/// Permit2: a queued authorization stays valid whatever settles first.
 #[account]
 pub struct NonceWindow {
     pub bits: [u8; 128],
@@ -232,6 +252,7 @@ pub struct Fund<'info> {
 #[derive(Accounts)]
 #[instruction(amount: u64, auth_nonce: u64)]
 pub struct Pay<'info> {
+    /// anyone: the relayer pays the fee, and the window rent once per 1024 nonces
     #[account(mut)]
     pub relayer: Signer<'info>,
     #[account(seeds = [b"escrow", escrow.authority.as_ref()], bump = escrow.bump)]
@@ -275,4 +296,7 @@ pub enum X402Error {
     NotAuthority,
     #[msg("the delegate has been revoked")]
     DelegateRevoked,
+    // appended, not inserted: the codes above are already deployed and mapped
+    #[msg("authorization is not valid yet")]
+    NotYetValid,
 }
