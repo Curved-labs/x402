@@ -83,7 +83,7 @@ docs/           - specification documents
 | Metric | Value |
 |---|---|
 | Settlement latency | ~503ms (devnet) |
-| Authorization size | 135 bytes |
+| Authorization size | 143 bytes |
 | Concurrent capacity | 1024 per window |
 
 ## Security model
