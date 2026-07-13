@@ -69,11 +69,11 @@ fn main() {
                     let payer = Pubkey::new_from_array(raw[0..32].try_into().unwrap());
                     let sig: [u8; 64] = raw[32..96].try_into().unwrap();
                     let nonce = u64::from_le_bytes(raw[96..104].try_into().unwrap());
-                    let msg = authorization(&payer, &payee, &mint, PRICE, nonce, EXPIRY);
+                    let msg = authorization(&payer, &payee, &mint, PRICE, nonce, 0, EXPIRY);
                     // settle ON-CHAIN as the relayer (our program is the facilitator)
                     let r = send_res(&rpc, &relayer, &[
                         ed25519_ix(&payer.to_bytes(), &sig, &msg),
-                        pay_ix(&relayer.pubkey(), &escrow, &mint, &vault, &payee_ata, &payer_authority, PRICE, nonce, EXPIRY),
+                        pay_ix(&relayer.pubkey(), &escrow, &mint, &vault, &payee_ata, &payer_authority, PRICE, nonce, 0, EXPIRY),
                     ]);
                     match r {
                         Ok(_) => write_resp(&mut st, "200 OK", "", "{\"resource\":\"premium data: 42\",\"settled\":true}"),
@@ -101,7 +101,7 @@ fn main() {
     println!("server quoted: {} USDC, nonce {nonce}", amount as f64 / 1e6);
 
     // step 3: sign the authorization OFF-CHAIN
-    let msg = authorization(&payer_authority, &payee_q, &mint_q, amount, nonce, expiry);
+    let msg = authorization(&payer_authority, &payee_q, &mint_q, amount, nonce, 0, expiry);
     let sig: [u8; 64] = agent_sk.sign(&msg).to_bytes();
     let mut payload = Vec::new();
     payload.extend_from_slice(&payer_pk32);

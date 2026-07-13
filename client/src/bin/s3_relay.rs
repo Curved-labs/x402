@@ -36,11 +36,11 @@ fn main() {
     fund(&rpc, &relayer.pubkey());
     let relayer_before = balance(&rpc, &relayer.pubkey());
 
-    let m0 = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, 10, expiry);
+    let m0 = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, 10, 0, expiry);
     let sg0: [u8; 64] = s.payer_sk.sign(&m0).to_bytes();
     send(&rpc, &relayer, &[], &[
         ed25519_ix(&payer_pk, &sg0, &m0),
-        pay_ix(&relayer.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, 10, expiry),
+        pay_ix(&relayer.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, 10, 0, expiry),
     ]);
     let b1: u64 = rpc.get_token_account_balance(&s.payee_ata).unwrap().amount.parse().unwrap();
     let agent_after = balance(&rpc, &s.payer.pubkey());
@@ -52,7 +52,7 @@ fn main() {
 
     // ---- B. open relay race: 3 relayers, same authorization, one wins ----
     let nonce = 20u64;
-    let mr = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, nonce, expiry);
+    let mr = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, nonce, 0, expiry);
     let sr: [u8; 64] = s.payer_sk.sign(&mr).to_bytes();
     let relayers: Vec<Keypair> = (0..3).map(|_| Keypair::new()).collect();
     for r in &relayers { fund(&rpc, &r.pubkey()); }
@@ -60,7 +60,7 @@ fn main() {
     for (i, r) in relayers.iter().enumerate() {
         let res = send_res(&rpc, r, &[
             ed25519_ix(&payer_pk, &sr, &mr),
-            pay_ix(&r.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, nonce, expiry),
+            pay_ix(&r.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, nonce, 0, expiry),
         ]);
         println!("   relayer {i}: {}", if res.is_ok() { "settled" } else { "rejected (nonce already spent)" });
         if res.is_ok() { wins += 1; }
@@ -72,11 +72,11 @@ fn main() {
 
     // ---- C. censorship: payee self-relays when relayers won't ----
     let n3 = 30u64;
-    let m3 = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, n3, expiry);
+    let m3 = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, n3, 0, expiry);
     let s3: [u8; 64] = s.payer_sk.sign(&m3).to_bytes();
     send(&rpc, &s.payee, &[], &[
         ed25519_ix(&payer_pk, &s3, &m3),
-        pay_ix(&s.payee.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, n3, expiry),
+        pay_ix(&s.payee.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, n3, 0, expiry),
     ]);
     let b3: u64 = rpc.get_token_account_balance(&s.payee_ata).unwrap().amount.parse().unwrap();
     assert_eq!(b3, amount * 3, "payee self-relayed");
