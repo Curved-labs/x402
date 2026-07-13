@@ -18,13 +18,13 @@ fn main() {
 
     // ---- one authorized micropayment: 1.5 USDC, relayed by the RELAYER ----
     let (amount, nonce, expiry) = (1_500_000u64, 1u64, i64::MAX / 2);
-    let msg = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, nonce, expiry);
+    let msg = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, nonce, 0, expiry);
     let sig: [u8; 64] = s.payer_sk.sign(&msg).to_bytes();
 
     let t0 = Instant::now();
     send(&rpc, &s.relayer, &[], &[
         ed25519_ix(&payer_pk, &sig, &msg),
-        pay_ix(&s.relayer.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, nonce, expiry),
+        pay_ix(&s.relayer.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, nonce, 0, expiry),
     ]);
     let ms = t0.elapsed().as_millis();
     let bal: u64 = rpc.get_token_account_balance(&s.payee_ata).unwrap().amount.parse().unwrap();
@@ -49,11 +49,11 @@ fn main() {
 
     // censorship path: the payee self-relays a fresh payment
     let n4 = 4u64;
-    let m4 = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, n4, expiry);
+    let m4 = authorization(&s.payer.pubkey(), &s.payee.pubkey(), &s.mint, amount, n4, 0, expiry);
     let s4: [u8; 64] = s.payer_sk.sign(&m4).to_bytes();
     send(&rpc, &s.payee, &[], &[
         ed25519_ix(&payer_pk, &s4, &m4),
-        pay_ix(&s.payee.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, n4, expiry),
+        pay_ix(&s.payee.pubkey(), &s.escrow, &s.mint, &s.vault, &s.payee_ata, &s.payer.pubkey(), amount, n4, 0, expiry),
     ]);
     let bal2: u64 = rpc.get_token_account_balance(&s.payee_ata).unwrap().amount.parse().unwrap();
     assert_eq!(bal2, amount * 2);

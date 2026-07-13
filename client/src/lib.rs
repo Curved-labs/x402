@@ -25,7 +25,7 @@ pub fn pid() -> Pubkey { Pubkey::from_str(PROGRAM).unwrap() }
 pub fn token() -> Pubkey { Pubkey::from_str(TOKEN).unwrap() }
 pub fn disc(n: &str) -> [u8; 8] { Sha256::digest(format!("global:{n}").as_bytes())[..8].try_into().unwrap() }
 
-pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, expiry: i64) -> Vec<u8> {
+pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, valid_from: i64, expiry: i64) -> Vec<u8> {
     let mut m = Vec::new();
     m.extend_from_slice(AUTH_DOMAIN);
     m.extend_from_slice(payer.as_ref());
@@ -33,6 +33,7 @@ pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64,
     m.extend_from_slice(mint.as_ref());
     m.extend_from_slice(&amount.to_le_bytes());
     m.extend_from_slice(&nonce.to_le_bytes());
+    m.extend_from_slice(&valid_from.to_le_bytes());
     m.extend_from_slice(&expiry.to_le_bytes());
     m
 }
@@ -71,13 +72,14 @@ fn mk_ata(payer: &Pubkey, owner: &Pubkey, mint: &Pubkey) -> Instruction {
 
 /// One authorized-payment instruction (permissionless: `relayer` submits).
 pub fn pay_ix(relayer: &Pubkey, escrow: &Pubkey, mint: &Pubkey, vault: &Pubkey, payee_ata: &Pubkey,
-              payer_authority: &Pubkey, amount: u64, nonce: u64, expiry: i64) -> Instruction {
+              payer_authority: &Pubkey, amount: u64, nonce: u64, valid_from: i64, expiry: i64) -> Instruction {
     // nonces are bitmap windows of 1024: rent once per window, not per payment
     let window = nonce / 1024;
     let nonce_pda = Pubkey::find_program_address(&[b"nonce", payer_authority.as_ref(), &window.to_le_bytes()], &pid()).0;
     let mut d = disc("pay").to_vec();
     d.extend_from_slice(&amount.to_le_bytes());
     d.extend_from_slice(&nonce.to_le_bytes());
+    d.extend_from_slice(&valid_from.to_le_bytes());
     d.extend_from_slice(&expiry.to_le_bytes());
     Instruction { program_id: pid(), accounts: vec![
         AccountMeta::new(*relayer, true),
