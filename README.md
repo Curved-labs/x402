@@ -85,6 +85,7 @@ docs/           - specification documents
 | Settlement latency | ~503ms (devnet) |
 | Authorization size | 143 bytes |
 | Concurrent capacity | 1024 per window |
+| valid_from support | Yes (scheduled payments) |
 
 ## Security model
 
