@@ -12,6 +12,7 @@
     "test:suite": "tsx test/suite.ts",
     "test:wallet": "tsx test/wallet.ts",
     "test:concurrent": "tsx test/concurrent.ts",
+    "test:subscription": "tsx test/subscription.ts",
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
