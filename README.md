@@ -77,6 +77,7 @@ docs/           - specification documents
 | 6005 | NonceSpent | Authorization already spent |
 | 6006 | NotAuthority | Not the escrow authority |
 | 6007 | DelegateRevoked | The delegate has been revoked |
+| 6008 | NotYetValid | Authorization is not valid yet |
 
 ## Performance
 
