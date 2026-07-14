@@ -96,6 +96,10 @@ The on-chain program is the facilitator. No off-chain server can block a settlem
 
 The payer needs zero npm dependencies. `@curved/x402/zero` uses only `node:crypto` for Ed25519 signing.
 
+## License
+
+MIT
+
 ## Agent wallet
 
 Budget enforcement: per-call, daily, lifetime limits. Hostname allowlist. Persistent ledger.
