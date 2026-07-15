@@ -6,6 +6,11 @@
 
 Facilitator-less x402 settlement on Solana.
 
+## Badges
+
+[![CI](https://github.com/Curved-labs/x402/actions/workflows/ci.yml/badge.svg)](https://github.com/Curved-labs/x402/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Overview
 
 SDK and on-chain program for facilitator-less x402 payments on Solana. The payer pre-funds a non-custodial escrow once. The agent signs off-chain authorizations. Any relayer settles them. No trusted server can refuse a valid payment.
