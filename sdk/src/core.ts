@@ -173,6 +173,10 @@ export async function relay(conn: Connection, relayer: Keypair, a: Authorization
   tx.sign(relayer);
   const s = await conn.sendRawTransaction(tx.serialize());
   const bh = await conn.getLatestBlockhash();
-  await conn.confirmTransaction({ signature: s, ...bh }, "confirmed");
+  const res = await conn.confirmTransaction({ signature: s, ...bh }, "confirmed");
+  // confirmTransaction resolves for a transaction that landed and FAILED, so the
+  // error has to be read out. Without this a payee serves the resource believing
+  // it was paid, on a settlement the chain rejected.
+  if (res.value.err) throw new Error(`settlement failed on chain: ${JSON.stringify(res.value.err)} (${s})`);
   return s;
 }
