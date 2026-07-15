@@ -34,7 +34,7 @@ make test       # 15-case integration suite
 make test-all   # suite + wallet policy + 64-concurrent burst
 ```
 
-All tests run on a local validator. The concurrent test settles 64 payments in parallel across bitmap windows.
+All tests run on a local validator. The concurrent test settles 64 payments in parallel across bitmap windows. The subscription test verifies valid_from scheduling and cancellation.
 
 ## Quick start
 
