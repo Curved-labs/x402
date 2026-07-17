@@ -102,7 +102,7 @@ MIT
 
 ## Agent wallet
 
-Budget enforcement: per-call, daily, lifetime limits. Hostname allowlist. Persistent ledger.
+Budget enforcement: per-call, daily, lifetime limits. Hostname allowlist. Persistent ledger. Full type declarations included for zero and wallet clients.
 
 ## Architecture
 
