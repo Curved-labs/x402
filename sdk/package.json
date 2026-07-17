@@ -76,6 +76,10 @@
   },
   "files": [
     "dist",
+    "zero/client.mjs",
+    "zero/client.d.mts",
+    "zero/wallet.mjs",
+    "zero/wallet.d.mts",
     "README.md"
   ],
   "sideEffects": false,
