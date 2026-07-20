@@ -1,0 +1,138 @@
+{
+  "address": "12wgXGsPik37Sb2UViocZqLuBrSGZXPgsNtjM8K1yZ8Y",
+  "metadata": {
+    "name": "x402_settle",
+    "version": "0.4.1",
+    "spec": "0.1.0",
+    "description": "Facilitator-less x402 settlement on Solana"
+  },
+  "instructions": [
+    {
+      "name": "open_escrow",
+      "discriminator": [228, 110, 233, 126, 189, 42, 105, 31],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "escrow", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [101, 115, 99, 114, 111, 119] }, { "kind": "account", "path": "payer" }] } },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "delegate", "type": "pubkey" }
+      ]
+    },
+    {
+      "name": "set_delegate",
+      "discriminator": [123, 219, 225, 181, 38, 71, 192, 14],
+      "accounts": [
+        { "name": "authority", "signer": true },
+        { "name": "escrow", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [101, 115, 99, 114, 111, 119] }, { "kind": "account", "path": "authority" }] } }
+      ],
+      "args": [
+        { "name": "new_delegate", "type": "pubkey" }
+      ]
+    },
+    {
+      "name": "deposit",
+      "discriminator": [242, 35, 198, 137, 82, 225, 242, 182],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "escrow", "pda": { "seeds": [{ "kind": "const", "value": [101, 115, 99, 114, 111, 119] }, { "kind": "account", "path": "payer" }] } },
+        { "name": "authority" },
+        { "name": "mint" },
+        { "name": "payer_tokens", "writable": true },
+        { "name": "vault", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [118, 97, 117, 108, 116] }, { "kind": "account", "path": "escrow" }, { "kind": "account", "path": "mint" }] } },
+        { "name": "token_program" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [183, 18, 70, 156, 148, 109, 161, 34],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "escrow", "pda": { "seeds": [{ "kind": "const", "value": [101, 115, 99, 114, 111, 119] }, { "kind": "account", "path": "payer" }] } },
+        { "name": "authority" },
+        { "name": "mint" },
+        { "name": "payer_tokens", "writable": true },
+        { "name": "vault", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [118, 97, 117, 108, 116] }, { "kind": "account", "path": "escrow" }, { "kind": "account", "path": "mint" }] } },
+        { "name": "token_program" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "pay",
+      "discriminator": [119, 18, 200, 44, 25, 230, 222, 131],
+      "accounts": [
+        { "name": "relayer", "writable": true, "signer": true },
+        { "name": "escrow", "pda": { "seeds": [{ "kind": "const", "value": [101, 115, 99, 114, 111, 119] }, { "kind": "account", "path": "escrow.authority" }] } },
+        { "name": "mint" },
+        { "name": "vault", "writable": true, "pda": { "seeds": [{ "kind": "const", "value": [118, 97, 117, 108, 116] }, { "kind": "account", "path": "escrow" }, { "kind": "account", "path": "mint" }] } },
+        { "name": "payee_tokens", "writable": true },
+        { "name": "nonce", "writable": true },
+        { "name": "instructions", "address": "Sysvar1nstructions1111111111111111111111111" },
+        { "name": "token_program" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" },
+        { "name": "auth_nonce", "type": "u64" },
+        { "name": "valid_from", "type": "i64" },
+        { "name": "expiry", "type": "i64" }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Escrow",
+      "discriminator": [36, 69, 48, 18, 128, 225, 125, 135],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "authority", "type": "pubkey" },
+          { "name": "delegate", "type": "pubkey" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "NonceWindow",
+      "discriminator": [211, 94, 227, 38, 144, 109, 86, 57],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "bits", "type": { "array": ["u8", 128] } }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "Paid",
+      "discriminator": [186, 212, 80, 228, 45, 200, 149, 25],
+      "fields": [
+        { "name": "payer", "type": "pubkey" },
+        { "name": "payee", "type": "pubkey" },
+        { "name": "mint", "type": "pubkey" },
+        { "name": "amount", "type": "u64" },
+        { "name": "nonce", "type": "u64" }
+      ]
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "MissingSig", "msg": "missing Ed25519 verification instruction" },
+    { "code": 6001, "name": "BadSigIx", "msg": "malformed Ed25519 instruction" },
+    { "code": 6002, "name": "WrongSigner", "msg": "authorization not signed by the payer" },
+    { "code": 6003, "name": "WrongAuth", "msg": "authorization does not match this payment" },
+    { "code": 6004, "name": "Expired", "msg": "authorization expired" },
+    { "code": 6005, "name": "NonceSpent", "msg": "authorization already spent" },
+    { "code": 6006, "name": "NotAuthority", "msg": "not the escrow authority" },
+    { "code": 6007, "name": "DelegateRevoked", "msg": "the delegate has been revoked" },
+    { "code": 6008, "name": "NotYetValid", "msg": "authorization is not valid yet" }
+  ],
+  "types": []
+}
