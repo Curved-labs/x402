@@ -184,7 +184,9 @@ sequenceDiagram
 | Metric | Value | Conditions |
 |---|---|---|
 | Authorization signing | 3 ms | Ed25519, node:crypto, M-series Mac |
-| Single settlement | 503 ms | Devnet, payer self-relay |
+| Single settlement | 881 ms | Devnet, payee self-relay, submit to confirmed |
+| Single settlement | 890 ms | Devnet, third-party relay, submit to confirmed |
+| Single settlement | 503 ms | Localnet, submit to confirmed |
 | 64 concurrent (same window) | 313 ms total | Same nonce window account |
 | On-chain cost | 6,794 lamports | Signature + amortized nonce rent |
 | Authorization size | 143 bytes | Fixed, no variable fields |
