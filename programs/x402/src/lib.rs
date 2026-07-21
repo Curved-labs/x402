@@ -85,7 +85,13 @@ pub mod x402_settle {
 
     /// Settle one authorized payment. Permissionless: `relayer` can be anyone
     /// (including the payee). The program enforces what a facilitator would.
-    pub fn pay(ctx: Context<Pay>, amount: u64, nonce: u64, valid_from: i64, expiry: i64) -> Result<()> {
+    pub fn pay(
+        ctx: Context<Pay>,
+        amount: u64,
+        nonce: u64,
+        valid_from: i64,
+        expiry: i64,
+    ) -> Result<()> {
         let escrow = &ctx.accounts.escrow;
         let payer = escrow.authority;
         let payee = ctx.accounts.payee_tokens.owner;
@@ -96,7 +102,11 @@ pub mod x402_settle {
         let delegate = escrow.delegate;
         require!(delegate != Pubkey::default(), X402Error::DelegateRevoked);
         let msg = authorization(&payer, &payee, &mint, amount, nonce, valid_from, expiry);
-        verify_ed25519(&ctx.accounts.instructions.to_account_info(), &delegate, &msg)?;
+        verify_ed25519(
+            &ctx.accounts.instructions.to_account_info(),
+            &delegate,
+            &msg,
+        )?;
 
         // inside its window. `valid_from` is what makes a stack of pre-signed
         // authorizations a schedule instead of an allowance: a payee holding
@@ -130,13 +140,27 @@ pub mod x402_settle {
             ctx.accounts.mint.decimals,
         )?;
 
-        emit!(Paid { payer, payee, mint, amount, nonce });
+        emit!(Paid {
+            payer,
+            payee,
+            mint,
+            amount,
+            nonce
+        });
         Ok(())
     }
 }
 
 /// The exact message the payer signs off-chain (Ed25519, no prehash). 143 bytes.
-pub fn authorization(payer: &Pubkey, payee: &Pubkey, mint: &Pubkey, amount: u64, nonce: u64, valid_from: i64, expiry: i64) -> Vec<u8> {
+pub fn authorization(
+    payer: &Pubkey,
+    payee: &Pubkey,
+    mint: &Pubkey,
+    amount: u64,
+    nonce: u64,
+    valid_from: i64,
+    expiry: i64,
+) -> Vec<u8> {
     let mut m = Vec::with_capacity(15 + 32 * 3 + 32);
     m.extend_from_slice(AUTH_DOMAIN);
     m.extend_from_slice(payer.as_ref());
@@ -163,15 +187,30 @@ fn verify_ed25519(ix_sysvar: &AccountInfo, payer: &Pubkey, expected: &[u8]) -> R
     let d = &ix.data;
     require!(d.len() >= 16, X402Error::BadSigIx);
     require!(d[0] == 1, X402Error::BadSigIx); // exactly one signature
-    // offsets struct (after 2-byte header): sig(2) sig_ix(4) pk(6) pk_ix(8) msg(10) msg_size(12) msg_ix(14)
+                                              // offsets struct (after 2-byte header): sig(2) sig_ix(4) pk(6) pk_ix(8) msg(10) msg_size(12) msg_ix(14)
     let u16at = |i: usize| u16::from_le_bytes([d[i], d[i + 1]]);
-    let refs_self = |i: usize| { let v = u16at(i); v == u16::MAX || v == self_idx };
-    require!(refs_self(4) && refs_self(8) && refs_self(14), X402Error::BadSigIx);
+    let refs_self = |i: usize| {
+        let v = u16at(i);
+        v == u16::MAX || v == self_idx
+    };
+    require!(
+        refs_self(4) && refs_self(8) && refs_self(14),
+        X402Error::BadSigIx
+    );
 
     let (pk_off, msg_off, msg_size) = (u16at(6) as usize, u16at(10) as usize, u16at(12) as usize);
-    require!(d.len() >= pk_off + 32 && d.len() >= msg_off + msg_size, X402Error::BadSigIx);
-    require!(&d[pk_off..pk_off + 32] == payer.as_ref(), X402Error::WrongSigner);
-    require!(msg_size == expected.len() && &d[msg_off..msg_off + msg_size] == expected, X402Error::WrongAuth);
+    require!(
+        d.len() >= pk_off + 32 && d.len() >= msg_off + msg_size,
+        X402Error::BadSigIx
+    );
+    require!(
+        &d[pk_off..pk_off + 32] == payer.as_ref(),
+        X402Error::WrongSigner
+    );
+    require!(
+        msg_size == expected.len() && &d[msg_off..msg_off + msg_size] == expected,
+        X402Error::WrongAuth
+    );
     Ok(())
 }
 
@@ -181,7 +220,9 @@ pub struct Escrow {
     pub delegate: Pubkey,
     pub bump: u8,
 }
-impl Escrow { pub const SIZE: usize = 8 + 32 + 32 + 1; }
+impl Escrow {
+    pub const SIZE: usize = 8 + 32 + 32 + 1;
+}
 
 /// One account covers 1024 nonces, so the rent that used to be paid per
 /// payment is paid once per window and amortised ~1000x. Unordered, like

@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="banner.png" alt="CURVED x402" width="100%" />
-</p>
-
-<p align="center">
   <a href="https://github.com/Curved-labs/x402/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-0891b2?style=flat-square" alt="license" />
   </a>
