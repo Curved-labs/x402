@@ -20,3 +20,4 @@ stage-wallet.json
 
 sdk/package-lock.json
 Cargo.lock
+*.tgz

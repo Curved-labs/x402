@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // One command instead of seven.
 //
-//   npx @curved/x402 init            set up an agent that can pay
-//   npx @curved/x402 init --seller   set up an API that can charge
-//   npx @curved/x402 status          what do I have, and can I actually pay
+//   npx curved init            set up an agent that can pay
+//   npx curved init --seller   set up an API that can charge
+//   npx curved status          what do I have, and can I actually pay
 //
 // Everything a person had to do by hand (make a keypair, create the token
 // account, open the escrow, fund it, find the right addresses, write the env)
@@ -142,7 +142,7 @@ function needSol(kp: Keypair, why: string) {
 }
 
 async function status() {
-  if (!existsSync(keyPath)) { say(`No key at ${keyPath}. Run: npx @curved/x402 init`); return; }
+  if (!existsSync(keyPath)) { say(`No key at ${keyPath}. Run: npx curved init`); return; }
   const kp = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(keyPath, "utf8"))));
   const escrow = escrowPda(kp.publicKey);
   const [sol, held, vault, open] = await Promise.all([
@@ -159,14 +159,14 @@ async function status() {
   say(`spendable ${money(vault)}${open ? "" : "   (no escrow yet)"}`);
   say(``);
   say(vault > 0n ? `Can pay: yes, for about ${Math.floor(Number(vault) / 1000)} calls at 0.001 each.`
-                 : `Can pay: no. Run: npx @curved/x402 init --deposit <amount>`);
+                 : `Can pay: no. Run: npx curved init --deposit <amount>`);
 }
 
 const usage = `curved x402
 
-  npx @curved/x402 init              set up an agent that can pay
-  npx @curved/x402 init --seller     set up an API that can charge
-  npx @curved/x402 status            balances, and whether you can pay
+  npx curved init              set up an agent that can pay
+  npx curved init --seller     set up an API that can charge
+  npx curved status            balances, and whether you can pay
 
 options
   --network devnet|mainnet-beta      default devnet

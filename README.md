@@ -48,10 +48,19 @@ The payer signs a 143-byte Ed25519 message (not a transaction). The message comm
 
 ## For agent developers
 
-### Pay for an API with zero dependencies
+The payer is one file. Copy it, there is nothing to install:
 
-```typescript
-import { pay } from "@curved/x402/zero";
+```bash
+curl -O https://raw.githubusercontent.com/Curved-labs/x402/main/sdk/zero/client.mjs
+```
+
+136 lines, one import (`node:crypto`). Add `zero/wallet.mjs` too if you want the
+spend policy below.
+
+### Pay for an API
+
+```javascript
+import { pay } from "./client.mjs";
 
 const response = await pay(secretKey, "https://api.example.com/premium");
 // response is a standard fetch Response, already paid
@@ -60,8 +69,8 @@ const response = await pay(secretKey, "https://api.example.com/premium");
 
 ### Set a spend policy on the agent
 
-```typescript
-import { wallet } from "@curved/x402/wallet";
+```javascript
+import { wallet } from "./wallet.mjs";
 
 const fetch = wallet({
   keyFile: ".curved-key.json",
@@ -78,14 +87,30 @@ const res = await fetch("https://api.example.com/premium");
 
 ### Set up the agent's escrow
 
+Opening an escrow is a Solana transaction, so this one needs the full SDK
+(see [installing](#installing) below).
+
 ```bash
-npx @curved/x402 init
+npx curved init
 # creates key, ATA, escrow, deposits, prints .env
 
-npx @curved/x402 status
+npx curved status
 # USDC balance:  4.75 (escrow) / 0.25 (wallet)
 # Can pay:       yes, for about 47 calls at 0.1 USDC
 ```
+
+## Installing
+
+The full SDK (seller middleware, escrow setup, relaying) is not on npm yet. It
+ships as a tarball on each release:
+
+```bash
+npm i https://github.com/Curved-labs/x402/releases/download/v0.4.1/curved-x402-0.4.1.tgz
+```
+
+That gives you `@curved/x402`, `@curved/x402/zero` and `@curved/x402/wallet`,
+plus the `curved` CLI. Agents that only pay do not need this: copy the one file
+above instead.
 
 ## For API sellers
 
@@ -254,7 +279,7 @@ x402/
     src/
       core.ts                  instruction builders, PDA derivation, relay
       wall.ts                  seller middleware (express + fetch)
-      cli.ts                   npx @curved/x402 init|status
+      cli.ts                   npx curved init|status
       client.ts                payer-side x402 handshake
       protocol.ts              x402 quote/response types
       server.ts                server-side quote builder
