@@ -60,7 +60,7 @@
   ],
   "author": {
     "name": "CURVED core",
-    "url": "https://curved.dev"
+    "url": "https://github.com/Curved-labs"
   },
   "license": "MIT",
   "repository": {
@@ -68,7 +68,7 @@
     "url": "git+https://github.com/Curved-labs/x402.git",
     "directory": "sdk"
   },
-  "homepage": "https://curved.dev",
+  "homepage": "https://github.com/Curved-labs/x402#readme",
   "bugs": {
     "url": "https://github.com/Curved-labs/x402/issues"
   },

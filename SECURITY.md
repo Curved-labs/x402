@@ -2,9 +2,10 @@
 
 ## Reporting a vulnerability
 
-If you discover a security vulnerability in this project, please report it privately.
+If you discover a security vulnerability in this project, please report it privately through
+GitHub's private vulnerability reporting:
 
-**Email:** security@curved.dev
+**[Report a vulnerability](https://github.com/Curved-labs/x402/security/advisories/new)**
 
 Do not open a public issue. Include:
 

@@ -1,6 +1,6 @@
 # Support
 
-- Documentation: https://curved.dev/docs
+- Documentation: https://curved-six.vercel.app/docs
 - Issues: https://github.com/Curved-labs/x402/issues
 - Discussions: https://github.com/Curved-labs/x402/discussions
 
