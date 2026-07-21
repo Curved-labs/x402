@@ -11,135 +11,85 @@
   <a href="https://github.com/Curved-labs/x402/commits/main">
     <img src="https://img.shields.io/github/last-commit/Curved-labs/x402?style=flat-square&color=0891b2" alt="last commit" />
   </a>
-  <a href="https://github.com/Curved-labs/x402/stargazers">
-    <img src="https://img.shields.io/github/stars/Curved-labs/x402?style=flat-square&color=0891b2" alt="stars" />
-  </a>
-  <a href="https://github.com/Curved-labs/x402/issues">
-    <img src="https://img.shields.io/github/issues/Curved-labs/x402?style=flat-square&color=0891b2" alt="issues" />
-  </a>
-  <a href="https://curved.dev">
-    <img src="https://img.shields.io/badge/website-curved.dev-0891b2?style=flat-square" alt="website" />
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/github/repo-size/Curved-labs/x402?style=flat-square&color=0891b2" alt="repo size" />
-  </a>
 </p>
 
-x402 settlement on Solana. The payer signs a 143-byte authorization offline, not a transaction. No facilitator server, no account creation, no per-transaction fee. The on-chain program verifies and settles; any relayer, including the payee, can submit.
+# x402
 
-Original source lives in `programs/` and `sdk/`. Dependencies under `lib/` (if any) are vendored via git submodule.
+Payment infrastructure for autonomous agents on Solana.
+
+An agent signs 143 bytes. No Solana SDK, no RPC connection, no account, no gas. Any relayer settles it on-chain. No one can refuse.
 
 ---
 
-## Why this exists
+## The problem
 
-HTTP 402 (Payment Required) defines a standard negotiation for web payments. Existing implementations insert a facilitator server between payer and payee: the facilitator co-signs every transaction, gates access, and charges per call. If it refuses or goes offline, the payment cannot settle.
+AI agents need to pay for APIs, compute, and data. Existing x402 implementations (Coinbase, etc.) route every payment through a facilitator server. The facilitator verifies, settles, and takes a fee. If it refuses, the payment does not settle.
 
-This program removes the facilitator. The payer signs a detached Ed25519 message instead of a Solana transaction, so it needs no RPC endpoint, no recent blockhash, and no chain connection at signing time. The on-chain program enforces what a facilitator would: signature validity against the escrow's delegate key, nonce uniqueness via a 1024-bit bitmap, time window enforcement, and SPL token transfer.
+This creates three problems for agents:
 
-The result: a payment rail where the payer can be a sandboxed LLM tool, a CI job, or a browser extension with zero Solana dependencies. The payee can always self-relay, so no third party can censor a valid payment.
+1. **Agents cannot open facilitator accounts.** Facilitators require identity verification. An autonomous agent running in a sandbox has no identity to verify.
+2. **Agents cannot install chain SDKs.** Transaction-based payment requires `@solana/web3.js`, an RPC endpoint, a recent blockhash, and SOL for gas. That is a heavy dependency set for a process whose job is to call an API.
+3. **Agents cannot tolerate censorship.** If a facilitator decides to block an agent, every payment the agent signed becomes worthless. The agent's entire budget is frozen by a single party's decision.
 
-## What the 143 bytes buy you
+## The solution
 
-| Property | Transaction-based (facilitator model) | Detached signature (this program) |
+Remove the facilitator. The on-chain program does its job.
+
+The payer signs a 143-byte Ed25519 message (not a transaction). The message commits to: who pays, who receives, which token, how much, a nonce, and an expiry window. Any relayer, including the payee, submits this to the on-chain program, which reconstructs the same 143 bytes, verifies the signature against the escrow's delegate key, checks the nonce bitmap, enforces the time window, and transfers SPL tokens.
+
+| | Facilitator model | x402 (this program) |
 |---|---|---|
-| Chain connection at signing | Required (needs recent blockhash) | Not required |
-| Signature validity window | ~60 seconds (blockhash expiry) | Arbitrary (expiry field in auth) |
-| Who can submit | Payer or facilitator | Anyone, including the payee |
-| Payer-side dependencies | `@solana/web3.js`, RPC endpoint | `node:crypto` alone, or nothing |
-| Censorship resistance | Facilitator can refuse | Payee self-relays, uncensorable |
-| Per-transaction fee | Facilitator charges per call | Zero (gas only, ~6,800 lamports) |
+| Account required | Yes (KYC) | No |
+| Chain connection at signing | Yes (needs blockhash) | No |
+| Payer-side dependencies | `@solana/web3.js`, RPC | `node:crypto` alone |
+| Can be censored | Yes (facilitator refuses) | No (payee self-relays) |
+| Per-transaction fee | Facilitator markup | 0 (gas only, ~6,800 lamports) |
+| Signature validity | ~60s (blockhash expiry) | Arbitrary (expiry field) |
 
-## On-chain cost breakdown
+## For agent developers
 
-| Component | Lamports | Notes |
-|---|---|---|
-| Signature (base fee) | 5,000 | Standard Solana tx fee |
-| Nonce window rent (amortized) | ~1,794 | Paid once per 1024 payments |
-| **Total per payment** | **~6,794** | No facilitator markup |
+### Pay for an API with zero dependencies
 
-## Features
+```typescript
+import { pay } from "@curved/x402/zero";
 
-| Component | Status | Path |
-|---|---|---|
-| Settlement program | Stable | `programs/x402/` |
-| TypeScript SDK | Stable | `sdk/src/` |
-| Zero-dependency client | Stable | `sdk/zero/client.mjs` |
-| Agent wallet with policy | Stable | `sdk/zero/wallet.mjs` |
-| Wall middleware | Stable | `sdk/src/wall.ts` |
-| CLI (escrow setup) | Beta | `sdk/src/cli.ts` |
-| Rust client + relay | Alpha | `client/` |
-
-## Architecture
-
-```mermaid
-sequenceDiagram
-    participant Payer as Payer (offline)
-    participant Seller as Seller (payee)
-    participant Program as x402 Program
-    participant Ed25519 as Ed25519 Precompile
-
-    Payer->>Payer: sign 143-byte auth (Ed25519, no RPC)
-    Payer->>Seller: HTTP request + X-PAYMENT header
-    Seller->>Program: submit [ed25519_verify, pay] tx
-    Program->>Ed25519: introspect prior instruction
-    Ed25519-->>Program: signature valid for delegate key
-    Program->>Program: check nonce bitmap, expiry, valid_from
-    Program->>Seller: SPL transfer from vault to payee ATA
-    Seller-->>Payer: HTTP 200 + resource
+const response = await pay(secretKey, "https://api.example.com/premium");
+// response is a standard fetch Response, already paid
+// the agent spent: 0 SOL, 0 npm dependencies
 ```
 
-### Account layout
+### Set a spend policy on the agent
 
-```
-Escrow (PDA: ["escrow", authority])
-  authority: Pubkey     // owner, can deposit/withdraw
-  delegate:  Pubkey     // agent key, can sign authorizations
-  bump:      u8
+```typescript
+import { wallet } from "@curved/x402/wallet";
 
-NonceWindow (PDA: ["nonce", authority, window_index])
-  bits: [u8; 128]       // 1024 nonces per account
+const fetch = wallet({
+  keyFile: ".curved-key.json",
+  policy: {
+    maxPerCall:  100_000n,      // 0.1 USDC ceiling per request
+    maxPerDay:   5_000_000n,    // 5 USDC daily budget
+    allow: ["api.example.com"], // hostname allowlist
+  },
+});
 
-Vault (PDA: ["vault", escrow, mint])
-  SPL TokenAccount       // holds payer's deposited tokens
-```
-
-## Authorization format (143 bytes)
-
-```
- 0..15   AUTH_DOMAIN     "X402SOL_AUTH_V1"
-15..47   payer           Pubkey (escrow authority)
-47..79   payee           Pubkey (recipient)
-79..111  mint            Pubkey (SPL token mint)
-111..119 amount          u64 LE
-119..127 nonce           u64 LE
-127..135 valid_from      i64 LE (0 = immediate)
-135..143 expiry          i64 LE (unix seconds)
+const res = await fetch("https://api.example.com/premium");
+// PolicyError thrown BEFORE signing if limits exceeded
 ```
 
-The payer signs these 143 bytes with Ed25519 (no prehash). The on-chain program reconstructs the same bytes from instruction arguments and verifies them against the delegate's public key via the Ed25519 native precompile.
-
-## Build
+### Set up the agent's escrow
 
 ```bash
-git clone https://github.com/Curved-labs/x402.git
-cd x402
+npx @curved/x402 init
+# creates key, ATA, escrow, deposits, prints .env
 
-# on-chain program (requires Anchor 0.31+)
-anchor build
-
-# TypeScript SDK
-cd sdk && npm install && npm run build
-
-# Rust client (separate workspace, uses agave SDK 3.x)
-cd client && cargo build --release
+npx @curved/x402 status
+# USDC balance:  4.75 (escrow) / 0.25 (wallet)
+# Can pay:       yes, for about 47 calls at 0.1 USDC
 ```
 
-The program crate (`programs/x402/`) and the Rust client (`client/`) live in separate workspaces because they target different Solana SDK major versions. The program uses `solana-program 2.x` (Anchor 0.31), the client uses `solana-sdk 3.x` (agave).
+## For API sellers
 
-## Quick start
-
-### Seller: protect an endpoint
+### Protect an endpoint
 
 ```typescript
 import { wall } from "@curved/x402";
@@ -157,64 +107,88 @@ app.use("/api/premium", wall({
 app.get("/api/premium", (req, res) => {
   res.json({ data: "paid content" });
 });
-// seller receives: { payee, mint, amount, signature, slot }
 ```
 
-### Payer: pay with zero dependencies
+The wall middleware returns an x402 quote on unpaid requests and verifies + settles paid ones. The seller receives USDC directly. No facilitator takes a cut.
 
-```typescript
-import { pay } from "@curved/x402/zero";
+## Custody split
 
-const response = await pay(secretKey, "https://api.example.com/premium");
-// response is a standard fetch Response, already paid
-// agent spent: 0 SOL (payee relayed the settlement)
+The escrow has two keys:
+
+- **Authority**: deposits, withdraws, rotates the delegate. This is the cold key. Keep it offline.
+- **Delegate**: signs payment authorizations. This is the agent's hot key.
+
+If the agent key is compromised, the attacker can only sign authorizations against the existing escrow balance. The authority revokes the delegate (`set_delegate` to zero address), withdraws remaining funds, and rotates to a new agent key. The attacker never touches the authority key.
+
+```
+Escrow (PDA: ["escrow", authority])
+  authority: Pubkey     // owner, can deposit/withdraw
+  delegate:  Pubkey     // agent key, can sign authorizations
+  bump:      u8
+
+Vault (PDA: ["vault", escrow, mint])
+  SPL TokenAccount       // holds deposited tokens
+
+NonceWindow (PDA: ["nonce", authority, window_index])
+  bits: [u8; 128]       // 1024 nonces per account
 ```
 
-### Payer: agent wallet with spend policy
+## Authorization format (143 bytes)
 
-```typescript
-import { wallet } from "@curved/x402/wallet";
-
-const fetch = wallet({
-  keyFile: ".curved-key.json",
-  policy: {
-    maxPerCall:  100_000n,      // 0.1 USDC ceiling per request
-    maxPerDay:   5_000_000n,    // 5 USDC daily budget
-    allow: ["api.example.com"], // hostname allowlist
-  },
-});
-
-const res = await fetch("https://api.example.com/premium");
-// PolicyError thrown BEFORE signing if limits exceeded
-// { amount: 100000n, allowed: false, reasons: ["over daily limit"] }
+```
+ 0..15   AUTH_DOMAIN     "X402SOL_AUTH_V1"
+15..47   payer           Pubkey (escrow authority)
+47..79   payee           Pubkey (recipient)
+79..111  mint            Pubkey (SPL token mint)
+111..119 amount          u64 LE
+119..127 nonce           u64 LE
+127..135 valid_from      i64 LE (0 = immediate)
+135..143 expiry          i64 LE (unix seconds)
 ```
 
-### Payer: set up escrow (CLI)
+The payer signs these 143 bytes with Ed25519 (no prehash). The on-chain program reconstructs the same bytes from instruction arguments and verifies them against the delegate's public key via the Ed25519 native precompile.
 
-```bash
-npx @curved/x402 init
-# creates key, ATA, escrow, deposits, prints .env
+## Architecture
 
-npx @curved/x402 init --seller
-# creates key + ATA only (no escrow needed for sellers)
+```mermaid
+sequenceDiagram
+    participant Agent as Agent (offline)
+    participant API as API seller
+    participant Program as x402 Program
+    participant Ed25519 as Ed25519 Precompile
 
-npx @curved/x402 status
-# USDC balance:  4.75 (escrow) / 0.25 (wallet)
-# SOL balance:   0.02
-# Can pay:       yes, for about 47 calls at 0.1 USDC
+    Agent->>Agent: sign 143-byte auth (Ed25519, no RPC)
+    Agent->>API: HTTP request + X-PAYMENT header
+    API->>Program: submit [ed25519_verify, pay] tx
+    Program->>Ed25519: introspect prior instruction
+    Ed25519-->>Program: signature valid for delegate key
+    Program->>Program: check nonce bitmap, expiry, valid_from
+    Program->>API: SPL transfer from vault to payee ATA
+    API-->>Agent: HTTP 200 + resource
 ```
 
-### On-chain: Rust client
+## Components
 
-```rust
-use x402_client::{authorize, relay};
+| Component | Status | Path |
+|---|---|---|
+| Settlement program | Stable | `programs/x402/` |
+| TypeScript SDK | Stable | `sdk/src/` |
+| Zero-dependency client | Stable | `sdk/zero/client.mjs` |
+| Agent wallet with policy | Stable | `sdk/zero/wallet.mjs` |
+| Wall middleware (seller) | Stable | `sdk/src/wall.ts` |
+| CLI (escrow setup) | Beta | `sdk/src/cli.ts` |
+| Rust client + relay | Alpha | `client/` |
 
-let auth = authorize(&agent_keypair, &payee, &mint, amount, nonce, expiry);
-// auth.signature: 64 bytes, auth.message: 143 bytes
+## Performance
 
-let sig = relay(&rpc, &relayer_keypair, &auth).await?;
-// sig: base58 transaction signature, settled on-chain
-```
+| Metric | Value | Conditions |
+|---|---|---|
+| Authorization signing | 3 ms | Ed25519, node:crypto, M-series Mac |
+| Single settlement | 503 ms | Devnet, payer self-relay |
+| 64 concurrent (same window) | 313 ms total | Same nonce window account |
+| On-chain cost | 6,794 lamports | Signature + amortized nonce rent |
+| Authorization size | 143 bytes | Fixed, no variable fields |
+| Zero client bundle | 0 bytes npm | Only node:crypto import |
 
 ## Test results
 
@@ -232,71 +206,20 @@ concurrent.ts     64/64  same-window burst (313ms), cross-window burst,
 subscription.ts    4/4   valid_from enforcement, scheduled payment chains
 ```
 
-## Project structure
+## Build
 
-```
-x402/
-  programs/x402/
-    src/lib.rs                 settlement program
-      open_escrow              create payer escrow + delegate
-      set_delegate             rotate or revoke agent key
-      deposit, withdraw        fund/drain the vault
-      pay                      verify auth + check nonce + transfer
-      verify_ed25519           introspect Ed25519 precompile instruction
-      authorization            build the 143-byte message
-    Cargo.toml
-    Xargo.toml
+```bash
+git clone https://github.com/Curved-labs/x402.git
+cd x402
 
-  sdk/
-    src/
-      core.ts                  instruction builders, PDA derivation, relay
-        escrowPda, vaultPda, noncePda, ata
-        authorizationBytes, signAuthorization
-        ed25519Ix, openEscrowIx, setDelegateIx
-        depositIx, withdrawIx, payIx
-        escrowDelegate, relay
-      wall.ts                  seller middleware (express + fetch)
-        check, wall, fetchWall
-      cli.ts                   npx @curved/x402 init|status
-      client.ts                payer-side x402 handshake
-      protocol.ts              x402 quote/response types
-      server.ts                server-side quote builder
-      index.ts                 re-exports
-    zero/
-      client.mjs               zero-dependency payer (node:crypto only)
-        buildPaymentHeader, pay
-      client.d.mts             type declarations
-      wallet.mjs               policy-bounded agent wallet
-        Wallet, PolicyError, wallet
-      wallet.d.mts             type declarations
-    test/
-      suite.ts                 15 integration tests
-      wallet.ts                8 policy tests
-      concurrent.ts            64-payment burst test
-      subscription.ts          valid_from scheduling tests
-      e2e.ts                   basic end-to-end
-      wall-e2e.ts              wall middleware test
-      fund.ts                  escrow funding helper
+# on-chain program (requires Anchor 0.31+)
+anchor build
 
-  client/
-    src/
-      lib.rs                   Rust authorization + verification
-      main.rs                  single-shot payment binary (s1)
-      bin/s2_http.rs           HTTP relay server
-      bin/s3_relay.rs          batch relay binary
+# TypeScript SDK
+cd sdk && npm install && npm run build
 
-  idl/
-    x402_settle.json           Anchor IDL
-
-  examples/
-    pay-once.mjs               single payment example
-    wall-express.mjs           express server with wall
-    agent-budget.mjs           agent with daily budget
-
-  docs/
-    authorization.md           143-byte format specification
-    nonce-bitmap.md            Permit2-style nonce design
-    custody-split.md           owner vs delegate key model
+# Rust client (separate workspace, uses agave SDK 3.x)
+cd client && cargo build --release
 ```
 
 ## Deployments
@@ -319,16 +242,39 @@ x402/
 | 6007 | 0x1777 | DelegateRevoked | Escrow delegate set to default pubkey |
 | 6008 | 0x1778 | NotYetValid | Current time < valid_from |
 
-## Performance
+## Project structure
 
-| Metric | Value | Conditions |
-|---|---|---|
-| Authorization signing | 3 ms | Ed25519, node:crypto, M-series Mac |
-| Single settlement | 503 ms | Devnet, payer self-relay |
-| 64 concurrent (same window) | 313 ms total | Same nonce window account |
-| On-chain cost | 6,794 lamports | Signature + amortized nonce rent |
-| Authorization size | 143 bytes | Fixed, no variable fields |
-| Zero client bundle | 0 bytes npm | Only node:crypto import |
+```
+x402/
+  programs/x402/
+    src/lib.rs                 settlement program
+  sdk/
+    src/
+      core.ts                  instruction builders, PDA derivation, relay
+      wall.ts                  seller middleware (express + fetch)
+      cli.ts                   npx @curved/x402 init|status
+      client.ts                payer-side x402 handshake
+      protocol.ts              x402 quote/response types
+      server.ts                server-side quote builder
+    zero/
+      client.mjs               zero-dependency payer (node:crypto only)
+      wallet.mjs               policy-bounded agent wallet
+    test/                      91 integration tests
+  client/
+    src/
+      lib.rs                   Rust authorization + verification
+      main.rs                  single-shot payment binary
+      bin/s2_http.rs           HTTP relay server
+      bin/s3_relay.rs          batch relay binary
+  docs/
+    authorization.md           143-byte format specification
+    nonce-bitmap.md            Permit2-style nonce design
+    custody-split.md           owner vs delegate key model
+  examples/
+    pay-once.mjs               single payment example
+    wall-express.mjs           express server with wall
+    agent-budget.mjs           agent with daily budget
+```
 
 ## Contributing
 
@@ -337,9 +283,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and PR guidelines.
 ## License
 
 [MIT](LICENSE)
-
-## Links
-
-- Website: https://curved.dev
-- GitHub: https://github.com/Curved-labs/x402
-- Documentation: https://curved.dev/docs
