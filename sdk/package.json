@@ -1,27 +1,24 @@
 {
   "name": "@curved/x402",
   "version": "0.4.1",
-  "description": "x402 payments on Solana",
+  "description": "x402 payments on Solana with no facilitator, no account and no per-transaction fee. The payer signs 143 bytes offline; anyone, including the payee, can settle them.",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "test": "tsx test/e2e.ts",
     "test:wall": "tsx test/wall-e2e.ts",
-    "test:suite": "tsx test/suite.ts",
     "test:wallet": "tsx test/wallet.ts",
+    "test:suite": "tsx test/suite.ts",
     "test:concurrent": "tsx test/concurrent.ts",
-    "test:subscription": "tsx test/subscription.ts",
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
-  },
-  "dependencies": {
-    "@solana/web3.js": "^1.98.0",
-    "tweetnacl": "^1.0.3"
   },
   "exports": {
     ".": {
@@ -40,6 +37,14 @@
   "bin": {
     "curved": "dist/cli.js"
   },
+  "files": [
+    "dist",
+    "zero/client.mjs",
+    "zero/client.d.mts",
+    "zero/wallet.mjs",
+    "zero/wallet.d.mts",
+    "README.md"
+  ],
   "keywords": [
     "x402",
     "solana",
@@ -74,15 +79,11 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "files": [
-    "dist",
-    "zero/client.mjs",
-    "zero/client.d.mts",
-    "zero/wallet.mjs",
-    "zero/wallet.d.mts",
-    "README.md"
-  ],
   "sideEffects": false,
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "tweetnacl": "^1.0.3"
+  },
   "devDependencies": {
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
