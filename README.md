@@ -278,6 +278,11 @@ x402/
     agent-budget.mjs           agent with daily budget
 ```
 
+## Links
+
+- Documentation: https://curved.pro/docs
+- Security: [report privately](https://github.com/Curved-labs/x402/security/advisories/new)
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and PR guidelines.
