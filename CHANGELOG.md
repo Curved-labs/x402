@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-23
+
+### Added
+
+- On-chain spending caps. `set_policy(max_per_call, max_per_day)` pins an authority-set cap to the escrow, enforced by the program at settlement. A leaked delegate key cannot spend past it no matter what it signs. The UTC-day tally lives on-chain and rolls lazily; tightening a cap mid-day keeps the tally. Zero means uncapped.
+- SDK: `policyPda`, `setPolicyIx`, `readPolicy`, and the `Policy` type. `payIx` now includes the policy PDA.
+- Errors `OverCallCap` (6009) and `OverDayCap` (6010).
+- `sdk/test/policy.ts`: seven-case cap suite, run against the deployed program.
+
+### Changed
+
+- `pay` takes one more account (the escrow's policy PDA). Relayers built against 0.4.x must rebuild the pay instruction; authorizations and the wire format are unchanged.
+
 ## [0.4.1] - 2026-07-21
 
 ### Fixed

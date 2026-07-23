@@ -37,3 +37,19 @@ const rotate = setDelegateIx(humanPubkey, newBotPubkey);
 ```
 
 The old bot's signatures stop working. The new bot's signatures start working. No fund movement.
+
+## The on-chain spending cap
+
+The authority can pin a cap to the escrow itself:
+
+```typescript
+await send(owner, [setPolicyIx(owner.publicKey,
+  500_000n,     // 0.50 USDC per call, 0 = uncapped
+  5_000_000n,   // 5.00 USDC per UTC day, 0 = uncapped
+)]);
+```
+
+The check runs inside `pay`, at settlement, so it binds whoever holds the
+delegate key. The day tally lives on-chain and rolls at UTC midnight.
+Tightening a cap mid-day keeps the tally, so already-spent budget does not
+reopen. Rejections: `OverCallCap` (6009), `OverDayCap` (6010).

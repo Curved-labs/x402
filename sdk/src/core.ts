@@ -63,6 +63,8 @@ export const noncePda = (payer: PublicKey, nonce: bigint) =>
   )[0];
 export const ata = (owner: PublicKey, mint: PublicKey) =>
   PublicKey.findProgramAddressSync([owner.toBuffer(), TOKEN_ID.toBuffer(), mint.toBuffer()], ATA_ID)[0];
+export const policyPda = (escrow: PublicKey) =>
+  PublicKey.findProgramAddressSync([Buffer.from("policy"), escrow.toBuffer()], PROGRAM_ID)[0];
 
 /// The exact 143 bytes the agent signs. No transaction, no RPC.
 export function authorizationBytes(a: Authorization): Uint8Array {
@@ -144,12 +146,44 @@ export function payIx(relayer: PublicKey, a: Authorization): TransactionInstruct
       { pubkey: vaultPda(escrow, a.mint), isSigner: false, isWritable: true },
       { pubkey: ata(a.payee, a.mint), isSigner: false, isWritable: true },
       { pubkey: noncePda(a.payer, a.nonce), isSigner: false, isWritable: true },
+      { pubkey: policyPda(escrow), isSigner: false, isWritable: true },
       { pubkey: SYSVAR_INSTRUCTIONS_PUBKEY, isSigner: false, isWritable: false },
       { pubkey: TOKEN_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(cat(disc("pay"), u64le(a.amount), u64le(a.nonce), i64le(a.validFrom), i64le(a.expiry))),
   });
+}
+
+/// The authority's on-chain spending cap for its delegate. Zero = uncapped.
+export type Policy = { maxPerCall: bigint; maxPerDay: bigint; spentToday: bigint; dayStart: bigint };
+
+/// Set or update the escrow's spending cap. Authority-signed.
+export function setPolicyIx(authority: PublicKey, maxPerCall: bigint, maxPerDay: bigint): TransactionInstruction {
+  const escrow = escrowPda(authority);
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: escrow, isSigner: false, isWritable: false },
+      { pubkey: policyPda(escrow), isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(cat(disc("set_policy"), u64le(maxPerCall), u64le(maxPerDay))),
+  });
+}
+
+/// Read the escrow's spending cap, or null if none is set.
+export async function readPolicy(conn: Connection, payer: PublicKey): Promise<Policy | null> {
+  const info = await conn.getAccountInfo(policyPda(escrowPda(payer)));
+  if (!info || info.data.length < 40) return null;
+  const dv = new DataView(info.data.buffer, info.data.byteOffset + 8);
+  return {
+    maxPerCall: dv.getBigUint64(0, true),
+    maxPerDay: dv.getBigUint64(8, true),
+    spentToday: dv.getBigUint64(16, true),
+    dayStart: dv.getBigInt64(24, true),
+  };
 }
 
 /// Read the key currently allowed to authorize payments for this payer. It is

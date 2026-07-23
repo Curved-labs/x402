@@ -105,7 +105,7 @@ The full SDK (seller middleware, escrow setup, relaying) is not on npm yet. It
 ships as a tarball on each release:
 
 ```bash
-npm i https://github.com/Curved-labs/x402/releases/download/v0.4.1/curved-x402-0.4.1.tgz
+npm i https://github.com/Curved-labs/x402/releases/download/v0.5.0/curved-x402-0.5.0.tgz
 ```
 
 That gives you `@curved/x402`, `@curved/x402/zero` and `@curved/x402/wallet`,
@@ -143,7 +143,9 @@ The escrow has two keys:
 - **Authority**: deposits, withdraws, rotates the delegate. This is the cold key. Keep it offline.
 - **Delegate**: signs payment authorizations. This is the agent's hot key.
 
-If the agent key is compromised, the attacker can only sign authorizations against the existing escrow balance. The authority revokes the delegate (`set_delegate` to zero address), withdraws remaining funds, and rotates to a new agent key. The attacker never touches the authority key.
+The authority can also pin an on-chain spending cap to the escrow (`set_policy`): a per-call ceiling and a UTC-day budget, enforced by the program at settlement. A leaked delegate key cannot spend past the cap no matter what it signs.
+
+If the agent key is compromised, the attacker can only sign authorizations against the existing escrow balance, inside the spending cap. The authority revokes the delegate (`set_delegate` to zero address), withdraws remaining funds, and rotates to a new agent key. The attacker never touches the authority key.
 
 ```
 Escrow (PDA: ["escrow", authority])
@@ -231,6 +233,9 @@ concurrent.ts     64/64  same-window burst (313ms), cross-window burst,
                          balance reconciliation after parallel settlement
 
 subscription.ts    4/4   valid_from enforcement, scheduled payment chains
+
+policy.ts          7/7   per-call cap, day cap, tally rollover, cap update
+                         keeps the tally, outsider cannot set policy
 ```
 
 ## Build
@@ -268,6 +273,8 @@ cd client && cargo build --release
 | 6006 | 0x1776 | NotAuthority | Caller is not the escrow authority |
 | 6007 | 0x1777 | DelegateRevoked | Escrow delegate set to default pubkey |
 | 6008 | 0x1778 | NotYetValid | Current time < valid_from |
+| 6009 | 0x1779 | OverCallCap | Amount exceeds the authority's per-call cap |
+| 6010 | 0x177a | OverDayCap | Amount exceeds today's on-chain spending cap |
 
 ## Project structure
 

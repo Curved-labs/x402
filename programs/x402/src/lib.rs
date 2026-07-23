@@ -48,6 +48,18 @@ pub mod x402_settle {
         Ok(())
     }
 
+    /// Set or update the escrow's spending cap. Authority-only. Zero means
+    /// uncapped for that field. The cap binds the DELEGATE's signatures at
+    /// settlement, on-chain: a leaked agent key cannot spend past it no matter
+    /// what it signs. The running day tally is deliberately kept on update so
+    /// tightening a cap mid-day cannot re-open spent budget.
+    pub fn set_policy(ctx: Context<SetPolicy>, max_per_call: u64, max_per_day: u64) -> Result<()> {
+        let p = &mut ctx.accounts.policy;
+        p.max_per_call = max_per_call;
+        p.max_per_day = max_per_day;
+        Ok(())
+    }
+
     pub fn deposit(ctx: Context<Fund>, amount: u64) -> Result<()> {
         transfer_checked(
             CpiContext::new(
@@ -114,6 +126,32 @@ pub mod x402_settle {
         let now = Clock::get()?.unix_timestamp;
         require!(now >= valid_from, X402Error::NotYetValid);
         require!(now <= expiry, X402Error::Expired);
+
+        // the spending cap, if the authority set one. Enforced HERE, at
+        // settlement, so it binds whoever holds the delegate key. An empty
+        // policy account means no cap. UTC-day tally, rolled lazily.
+        // the PDA seeds constraint pins the address, and only this program can
+        // have created data there, so non-empty data is a Policy we wrote.
+        if !ctx.accounts.policy.data_is_empty() {
+            let mut data = ctx.accounts.policy.try_borrow_mut_data()?;
+            let mut pol = Policy::try_deserialize(&mut &data[..])?;
+            if pol.max_per_call > 0 {
+                require!(amount <= pol.max_per_call, X402Error::OverCallCap);
+            }
+            let day = now.div_euclid(86400) * 86400;
+            if pol.day_start != day {
+                pol.day_start = day;
+                pol.spent_today = 0;
+            }
+            if pol.max_per_day > 0 {
+                require!(
+                    pol.spent_today.saturating_add(amount) <= pol.max_per_day,
+                    X402Error::OverDayCap
+                );
+            }
+            pol.spent_today = pol.spent_today.saturating_add(amount);
+            pol.try_serialize(&mut &mut data[..])?;
+        }
 
         // spend the nonce by flipping its bit in the payer's window. The bit
         // being set already is the replay guard.
@@ -224,6 +262,19 @@ impl Escrow {
     pub const SIZE: usize = 8 + 32 + 32 + 1;
 }
 
+/// The authority's spending cap on the delegate, enforced at settlement.
+/// Zero means uncapped for that field. One per escrow; absent = no cap.
+#[account]
+pub struct Policy {
+    pub max_per_call: u64,
+    pub max_per_day: u64,
+    pub spent_today: u64,
+    pub day_start: i64,
+}
+impl Policy {
+    pub const SIZE: usize = 8 + 8 + 8 + 8 + 8;
+}
+
 /// One account covers 1024 nonces, so the rent that used to be paid per
 /// payment is paid once per window and amortised ~1000x. Unordered, like
 /// Permit2: a queued authorization stays valid whatever settles first.
@@ -266,6 +317,23 @@ pub struct SetDelegate<'info> {
         has_one = authority @ X402Error::NotAuthority
     )]
     pub escrow: Box<Account<'info, Escrow>>,
+}
+
+#[derive(Accounts)]
+pub struct SetPolicy<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(
+        seeds = [b"escrow", authority.key().as_ref()], bump = escrow.bump,
+        has_one = authority @ X402Error::NotAuthority
+    )]
+    pub escrow: Box<Account<'info, Escrow>>,
+    #[account(
+        init_if_needed, payer = authority, space = Policy::SIZE,
+        seeds = [b"policy", escrow.key().as_ref()], bump
+    )]
+    pub policy: Box<Account<'info, Policy>>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -312,6 +380,9 @@ pub struct Pay<'info> {
         seeds = [b"nonce", escrow.authority.as_ref(), &(auth_nonce / NonceWindow::BITS).to_le_bytes()], bump
     )]
     pub nonce: Box<Account<'info, NonceWindow>>,
+    /// CHECK: the escrow's policy PDA; empty account means no cap is set
+    #[account(mut, seeds = [b"policy", escrow.key().as_ref()], bump)]
+    pub policy: UncheckedAccount<'info>,
     /// CHECK: constrained to the instructions sysvar
     #[account(address = INSTRUCTIONS_ID)]
     pub instructions: UncheckedAccount<'info>,
@@ -340,4 +411,8 @@ pub enum X402Error {
     // appended, not inserted: the codes above are already deployed and mapped
     #[msg("authorization is not valid yet")]
     NotYetValid,
+    #[msg("amount exceeds the per-call cap")]
+    OverCallCap,
+    #[msg("amount exceeds today's spending cap")]
+    OverDayCap,
 }
