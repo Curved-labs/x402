@@ -19,6 +19,8 @@ Payment infrastructure for autonomous agents on Solana.
 
 An agent signs 143 bytes. No Solana SDK, no RPC connection, no account, no gas. Any relayer settles it on-chain. No one can refuse.
 
+CA: 4YzNwNopRResPo1ubR8WJzuSd3MHKjzt9GJSYCyspump
+
 ---
 
 ## The problem
