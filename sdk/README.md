@@ -7,7 +7,7 @@ TypeScript SDK for x402 payments on Solana.
 Not on npm yet. Each release ships a tarball:
 
 ```bash
-npm i https://github.com/Curved-labs/x402/releases/download/v0.5.0/curved-x402-0.5.0.tgz
+npm i https://github.com/Curved-labs/x402/releases/download/v0.5.1/curved-x402-0.5.1.tgz
 ```
 
 If you only need to pay, you do not need this package at all. The payer is one

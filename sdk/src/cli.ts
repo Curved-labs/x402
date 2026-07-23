@@ -14,7 +14,12 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import {
   TOKEN_ID, ATA_ID, ata, escrowPda, vaultPda, openEscrowIx, depositIx, PROGRAM_ID,
+  setPolicyIx, readPolicy,
 } from "./core.ts";
+
+// new escrows are born capped; loosen or clear with --cap-call/--cap-day 0
+const DEFAULT_CAP_CALL = 5_000_000n;   // 5.00 per call
+const DEFAULT_CAP_DAY = 50_000_000n;   // 50.00 per UTC day
 
 const USDC = {
   "mainnet-beta": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
@@ -110,7 +115,15 @@ async function init() {
   if (sol === 0) return needSol(kp, "to open the escrow (one transaction, about 0.003 SOL)");
 
   const ixs: TransactionInstruction[] = [];
-  if (!open) ixs.push(openEscrowIx(kp.publicKey, kp.publicKey));
+  const capFlagGiven = args.includes("--cap-call") || args.includes("--cap-day");
+  const capCall = BigInt(flag("cap-call", String(DEFAULT_CAP_CALL))!);
+  const capDay = BigInt(flag("cap-day", String(DEFAULT_CAP_DAY))!);
+  if (!open) {
+    ixs.push(openEscrowIx(kp.publicKey, kp.publicKey));
+    ixs.push(setPolicyIx(kp.publicKey, capCall, capDay));
+  } else if (capFlagGiven) {
+    ixs.push(setPolicyIx(kp.publicKey, capCall, capDay));
+  }
   const deposit = BigInt(flag("deposit", "0")!) || held;
   if (deposit > 0n) {
     if (deposit > held) { say(`\nYou asked to deposit ${money(deposit)} but hold ${money(held)}.`); process.exit(1); }
@@ -119,6 +132,12 @@ async function init() {
   if (ixs.length) {
     const sig = await send(kp, ixs);
     say(`escrow   ${open ? "funded" : "opened and funded"}  ${sig.slice(0, 16)}…`);
+  }
+
+  const pol = await readPolicy(conn, kp.publicKey);
+  if (pol) {
+    const cap = (v: bigint) => (v === 0n ? "uncapped" : money(v));
+    say(`cap      ${cap(pol.maxPerCall)} per call · ${cap(pol.maxPerDay)} per day  (change: npx curved init --cap-call <units> --cap-day <units>)`);
   }
 
   const spendable = await tokenBalance(vaultPda(escrow, mint));

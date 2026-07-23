@@ -92,7 +92,8 @@ Opening an escrow is a Solana transaction, so this one needs the full SDK
 
 ```bash
 npx curved init
-# creates key, ATA, escrow, deposits, prints .env
+# creates key, ATA, escrow born with a default spending cap, deposits
+# override: --cap-call <units> --cap-day <units>, 0 = uncapped
 
 npx curved status
 # USDC balance:  4.75 (escrow) / 0.25 (wallet)
@@ -105,7 +106,7 @@ The full SDK (seller middleware, escrow setup, relaying) is not on npm yet. It
 ships as a tarball on each release:
 
 ```bash
-npm i https://github.com/Curved-labs/x402/releases/download/v0.5.0/curved-x402-0.5.0.tgz
+npm i https://github.com/Curved-labs/x402/releases/download/v0.5.1/curved-x402-0.5.1.tgz
 ```
 
 That gives you `@curved/x402`, `@curved/x402/zero` and `@curved/x402/wallet`,

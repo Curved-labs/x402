@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-07-23
+
+### Changed
+
+- `npx curved init` now opens escrows with the default spending cap (5.00 per call, 50.00 per UTC day), matching the console. Override or clear with `--cap-call <units> --cap-day <units>` (0 = uncapped); the flags also update the cap on an existing escrow. Init prints the active cap.
+
 ## [0.5.0] - 2026-07-23
 
 ### Added
