@@ -7,7 +7,7 @@ TypeScript SDK for x402 payments on Solana.
 Not on npm yet. Each release ships a tarball:
 
 ```bash
-npm i https://github.com/Curved-labs/x402/releases/download/v0.4.1/curved-x402-0.4.1.tgz
+npm i https://github.com/Curved-labs/x402/releases/download/v0.5.0/curved-x402-0.5.0.tgz
 ```
 
 If you only need to pay, you do not need this package at all. The payer is one
@@ -24,6 +24,20 @@ curl -O https://raw.githubusercontent.com/Curved-labs/x402/main/sdk/zero/client.
 | `@curved/x402` | Full SDK: instruction builders, relay, wall middleware, CLI |
 | `@curved/x402/zero` | Zero-dependency payer (node:crypto only) |
 | `@curved/x402/wallet` | Agent wallet with spend policy |
+
+The client-side policy above guards before signing. The rail also enforces an
+on-chain cap set by the escrow authority (`setPolicyIx`), checked at
+settlement, so a leaked key cannot spend past it:
+
+```typescript
+import { setPolicyIx, readPolicy } from "@curved/x402";
+
+await send(conn, owner, [], [setPolicyIx(owner.publicKey,
+  500_000n,     // 0.50 USDC per call, 0 = uncapped
+  5_000_000n,   // 5.00 USDC per UTC day, 0 = uncapped
+)]);
+const policy = await readPolicy(conn, owner.publicKey);
+```
 
 ## Usage: seller wall
 

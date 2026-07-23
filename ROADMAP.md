@@ -14,3 +14,5 @@
 - [x] Rust client and relay binaries
 - [x] Devnet deployment and integration tests
 - [x] 64-payment concurrent settlement test
+- [x] On-chain spending caps (`set_policy`: per-call and per-day, enforced at settlement)
+- [x] Release tarball distribution (v0.5.0)
