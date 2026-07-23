@@ -29,21 +29,15 @@ The following are out of scope:
 
 - The devnet deployment (test environment)
 - Example scripts in `examples/`
-- The Rust client binaries (alpha, not audited)
+- The Rust client binaries (alpha)
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 0.4.x | Yes |
-| < 0.4 | No |
+| 0.5.x | Yes |
+| < 0.5 | No |
 
 ## Disclosure policy
 
 We follow coordinated disclosure. We ask that you give us 90 days to address the issue before any public disclosure.
-
-## Known limitations
-
-- The program has not been formally audited. It is deployed on devnet only.
-- Single author. No independent review of the cryptographic verification logic has been done beyond the test suite.
-- The nonce bitmap is append-only. There is no mechanism to reclaim rent from fully spent windows.
